@@ -23,6 +23,19 @@ pnpm test        # unit tests: picks, Borda + tie-breaks, final-ten split, vote 
 pnpm test:e2e    # Playwright on a phone viewport
 ```
 
+## Deploying (Vercel + Neon)
+
+- Vercel runs `pnpm vercel-build`, which applies migrations on **production** deploys and then
+  builds. Previews skip migrations so an unmerged branch can't change the production schema;
+  set `MIGRATE_ON_BUILD=1` for Preview once Neon gives each preview its own branch.
+- `DATABASE_URL` comes from the Neon integration. Neon's `channel_binding=require` is stripped
+  automatically (the `postgres` driver doesn't support it); SSL stays on.
+- Seed the people once, from a machine that can reach Neon (your Codespace works):
+
+  ```bash
+  ADMIN_EMAILS="Your Name <you@example.com>" MEMBER_EMAILS="A <a@example.com>,B <b@example.com>" pnpm db:seed
+  ```
+
 ## The design archive
 
 The zips (~600 MB) **never go into git**. Unzip them into `./archive/` (git-ignored) and run
