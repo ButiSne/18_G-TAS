@@ -105,11 +105,21 @@ Verified: CI green and the Vercel preview **Ready**. The migration, the seed (ru
    HASH_SALT=<a long random string>
    ```
    `pnpm db:migrate`, `pnpm db:seed` and `pnpm ingest` all read `.env.local` themselves, so no
-   shell-specific `VAR=value` syntax is needed. The cloud session tested this on Linux only, so
-   confirm it once in PowerShell.
-5. **A database for development:** don't develop against production. In Neon, create a
-   **branch** named `dev` from `main` and use its connection string locally. Docker Postgres also
-   works.
+   shell-specific `VAR=value` syntax is needed. Confirmed on Windows PowerShell (Node 22.19,
+   pnpm 10.28) against the Docker database, 3 Nov 2026.
+5. **A database for development:** don't develop against production. The default is the Docker
+   Postgres in `docker-compose.yml` (needs Docker Desktop running):
+   ```powershell
+   pnpm db:up        # starts 18gtas-db on localhost:5418 (gtas_dev + gtas_test)
+   pnpm db:migrate
+   pnpm db:seed
+   pnpm db:psql      # a psql shell inside the container
+   pnpm db:reset     # wipe the volume and rebuild: up, migrate, seed
+   ```
+   with `DATABASE_URL=postgres://gtas:gtas@localhost:5418/gtas_dev` in `.env.local`. Schema changes
+   reach Neon only through the production deploy (`scripts/migrate-on-deploy.mjs`); never run
+   `drizzle-kit push` against Neon. A Neon **branch** named `dev` also works if Docker isn't
+   available.
 6. **Playwright browsers:** `pnpm exec playwright install chromium` once. (`PW_CHROMIUM_PATH` in
    `playwright.config.ts` only exists for machines with a pre-installed Chromium.)
 7. **Recommended VS Code extensions:** ESLint, Prettier, Tailwind CSS IntelliSense, Playwright Test.
