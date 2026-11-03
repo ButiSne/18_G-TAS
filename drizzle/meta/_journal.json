@@ -15,6 +15,13 @@
       "when": 1793738576483,
       "tag": "0001_ingest_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793745778231,
+      "tag": "0002_invite_sign_in",
+      "breakpoints": true
     }
   ]
 }

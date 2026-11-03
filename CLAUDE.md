@@ -23,6 +23,13 @@ Where this section and the rest of the brief disagree, **this section wins**.
 6. **Tailwind v4** keeps its tokens in `app/globals.css` under `@theme`, not in `tailwind.config.ts`. Same tokens, newer home.
 7. **The public vote is a swipe deck, strictly mobile first (agreed 3 Nov 2026).** One full-screen card per shortlisted design: swipe right = **YEBO**, swipe left = **CHA** (isiZulu; the words live in `messages/en.json`), with buttons, keyboard and undo as alternatives. At the end the voter may pick a "number one" (stored as the favourite `vote`), and gets a shareable "your style" card. A new public mode `swipe` is the default; favourite mode stays as an option; head-to-head (step 10) is deferred. Use only the gesture pattern from dating apps, never their names or visuals. The aim is that voters feel their opinion shapes the next drop.
 8. **Development runs on Docker Postgres** (`docker-compose.yml`, `pnpm db:up`); production is Neon through Vercel, and schema changes reach Neon only through the production deploy.
+9. **Team sign-in is by WhatsApp invite link, not email (agreed 4 Nov 2026).**
+   - **The link:** the admin taps "Create invite link" in `/admin` and sends it on WhatsApp. It works once, on one phone, for 24 hours, and a new link cancels the old one.
+   - **Using it:** opening the link only shows a "Sign in on this phone" button. Signing in happens on the tap (POST), so WhatsApp link previews can't burn the link.
+   - **Storage:** sessions are httpOnly cookies lasting 30 days. Tokens are stored only as SHA-256 hashes, and the admin can sign anyone out of every phone.
+   - **First admin:** gets their link from `pnpm invite "<name>"`.
+   - **No email:** no email service or domain is needed, so Resend and Auth.js are not used.
+   - **`/designs` stays team-only until the public vote**, so unreleased designs never leak.
 
 ---
 
@@ -281,7 +288,7 @@ Work in this order. Open one pull request per step, keep it green, and update th
 - [x] **2. Database:** Drizzle schema (section 5), migrations, seed script (members, admin, one draft round).
 - [x] **3. Ingest:** `scripts/ingest.ts` (section 4) with `ingest-report.md`, family grouping, WebP and Blob upload, and the brand-name content check.
 - [ ] **4. Catalogue:** `/designs` and `/designs/[slug]` with filters, colourway switcher and zoom.
-- [ ] **5. Member auth:** invite-only magic link; middleware protecting `/members/*` and `/admin/*`.
+- [x] **5. Member auth:** invite-only sign-in (WhatsApp invite links, §0.9); `proxy.ts` protecting `/members/*`, `/admin/*` and `/designs/*`, plus a session check in every page and action.
 - [ ] **6. Picks:** pick tray, ranking, submit and lock; database constraints; unit tests for exactly-six and unique-rank rules.
 - [ ] **7. Scoring:** Borda count, tie-breaks 1–3, results page; unit tests covering ties.
 - [ ] **8. Admin:** rounds, shortlist confirmation, unlock, exports, audit log.
