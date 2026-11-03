@@ -5,7 +5,7 @@
 
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { head, put } from "@vercel/blob";
+import { BlobNotFoundError, head, put } from "@vercel/blob";
 
 export type ImageStore = {
   name: string;
@@ -43,7 +43,8 @@ export function blobStore(token: string): ImageStore {
         const existing = await head(pathname, { token });
         return { url: existing.url, uploaded: false };
       } catch (error) {
-        if ((error as Error).name !== "BlobNotFoundError") throw error;
+        // The SDK's error.name is not reliable; the class is.
+        if (!(error instanceof BlobNotFoundError)) throw error;
       }
       const blob = await put(pathname, body, {
         access: "public",
