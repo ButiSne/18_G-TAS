@@ -226,6 +226,27 @@ One PR per step, each branched from fresh `main`. Keep every PR green. Tick the 
 
 ### Step 3: ingest (`scripts/ingest.ts`, run locally)
 
+> **Built (3 Nov 2026, branch `feat/ingest`).** How to run it:
+>
+> ```powershell
+> pnpm ingest --dry-run      # report only: ingest-report.md
+> pnpm ingest --store=local  # Docker dev: images to public/_local/ (git-ignored), no cloud
+> pnpm ingest                # Vercel Blob when BLOB_READ_WRITE_TOKEN is set
+> pnpm test:int              # ingest twice against gtas_test: second run changes nothing
+> ```
+>
+> What the real archive taught us:
+>
+> - The Tee-72 file names have no EITEEN/ELDERS labels. The lines come from the two collection
+>   sheets, recorded in `data/line-overrides.json`.
+> - Round 10 colourways are colour names, not `_A`/`_B`.
+> - Print masters are spelled differently from the mockups (`FourSquares` vs `Four_Squares`).
+> - Tee colour is sampled from the mockup sleeves. sharp's `stats()` ignores `extract()`, so raw
+>   pixels are averaged instead.
+> - Families with no decidable line are reported and **not imported** until the owner adds them
+>   to the overrides file.
+> - Re-runs never overwrite an admin's edits to title, line or slug.
+
 The archive lives on the owner's machine (originally `C:\pe\18G-TAS`, also in the owner's
 Codespace). Unzip every zip into `./archive/` inside the repo; it is git-ignored.
 

@@ -41,6 +41,9 @@ export const collection = pgTable("collection", {
 export const design = pgTable("design", {
   id: id(),
   slug: text("slug").notNull().unique(),
+  // "<collection slug>/<family no>" from ingest (e.g. "tee-collection-72/t07"). Ingest
+  // upserts on it, so re-runs update the same row even if the admin renames the title.
+  familyKey: text("family_key").unique(),
   title: text("title").notNull(),
   line: designLine("line").notNull(),
   collectionId: uuid("collection_id").references(() => collection.id),
@@ -53,6 +56,9 @@ export const design = pgTable("design", {
     .notNull()
     .default(sql`'{}'::text[]`),
   hidden: boolean("hidden").notNull().default(false),
+  // Print masters that belong to the design as a whole (shared artwork, logo masters).
+  // Per-colourway files live on colourway.print_files. Paths only, relative to archive/.
+  printFiles: jsonb("print_files").$type<string[]>().notNull().default([]),
   createdAt: createdAt(),
 });
 
@@ -65,6 +71,12 @@ export const colourway = pgTable("colourway", {
   imageUrl: text("image_url").notNull(),
   thumbUrl: text("thumb_url").notNull(),
   imageHash: text("image_hash").notNull().unique(),
+  // A tiny WebP as a data URL: an instant placeholder while the real image loads on 4G.
+  blurDataUrl: text("blur_data_url"),
+  // Extra views of this colourway (close-up detail shots), shown in the zoom.
+  views: jsonb("views").$type<{ imageUrl: string; thumbUrl: string }[]>().notNull().default([]),
+  // Canonical tee colour for the catalogue filter (src/ingest/tee-colour.ts).
+  teeColour: text("tee_colour"),
   // Paths only. Print masters are never uploaded; the print team finds them in the archive.
   printFiles: jsonb("print_files").$type<string[]>().notNull().default([]),
   sortOrder: integer("sort_order").notNull().default(0),

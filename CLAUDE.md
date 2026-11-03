@@ -21,6 +21,8 @@ Where this section and the rest of the brief disagree, **this section wins**.
 4. **Default shortlist size is 20** (allowed 10–40), so the final ten has room to find 5 + 5. The shortlist screen warns when it holds fewer than 5 sublimation or 5 non-sublimation designs.
 5. **Public voters are not only youth.** The POPIA rules in section 6 still apply in full, because under-18s will be among them.
 6. **Tailwind v4** keeps its tokens in `app/globals.css` under `@theme`, not in `tailwind.config.ts`. Same tokens, newer home.
+7. **The public vote is a swipe deck, strictly mobile first (agreed 3 Nov 2026).** One full-screen card per shortlisted design: swipe right = **YEBO**, swipe left = **CHA** (isiZulu; the words live in `messages/en.json`), with buttons, keyboard and undo as alternatives. At the end the voter may pick a "number one" (stored as the favourite `vote`), and gets a shareable "your style" card. A new public mode `swipe` is the default; favourite mode stays as an option; head-to-head (step 10) is deferred. Use only the gesture pattern from dating apps, never their names or visuals. The aim is that voters feel their opinion shapes the next drop.
+8. **Development runs on Docker Postgres** (`docker-compose.yml`, `pnpm db:up`); production is Neon through Vercel, and schema changes reach Neon only through the production deploy.
 
 ---
 
@@ -277,7 +279,7 @@ Work in this order. Open one pull request per step, keep it green, and update th
 
 - [x] **1. Scaffold:** Next.js + TypeScript + Tailwind with the brand tokens and fonts, ESLint and Prettier, Vitest, Playwright, GitHub Actions CI.
 - [x] **2. Database:** Drizzle schema (section 5), migrations, seed script (members, admin, one draft round).
-- [ ] **3. Ingest:** `scripts/ingest.ts` (section 4) with `ingest-report.md`, family grouping, WebP and Blob upload, and the brand-name content check.
+- [x] **3. Ingest:** `scripts/ingest.ts` (section 4) with `ingest-report.md`, family grouping, WebP and Blob upload, and the brand-name content check.
 - [ ] **4. Catalogue:** `/designs` and `/designs/[slug]` with filters, colourway switcher and zoom.
 - [ ] **5. Member auth:** invite-only magic link; middleware protecting `/members/*` and `/admin/*`.
 - [ ] **6. Picks:** pick tray, ranking, submit and lock; database constraints; unit tests for exactly-six and unique-rank rules.
