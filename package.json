@@ -27,7 +27,8 @@
     "db:down": "docker compose down",
     "db:reset": "docker compose down -v && docker compose up -d --wait db && pnpm db:migrate && pnpm db:seed",
     "db:psql": "docker compose exec db psql -U gtas -d gtas_dev",
-    "ingest": "node --env-file-if-exists=.env.local --experimental-strip-types scripts/ingest.ts"
+    "ingest": "node --env-file-if-exists=.env.local --experimental-strip-types scripts/ingest.ts",
+    "invite": "node --env-file-if-exists=.env.local --experimental-strip-types scripts/invite.ts"
   },
   "dependencies": {
     "@vercel/blob": "2.8.2",

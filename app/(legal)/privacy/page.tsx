@@ -94,6 +94,11 @@ export default function Privacy() {
         holds no personal information. We use no advertising or tracking cookies. If we count page
         visits, we use cookie-free analytics.
       </p>
+      <p>
+        Team members also get <strong>one sign-in cookie</strong> after opening their personal
+        invite link. It keeps them signed in on that phone for up to 30 days, and ends when they
+        sign out or the admin signs them out.
+      </p>
 
       <h2 id="security">Security</h2>
       <p>
