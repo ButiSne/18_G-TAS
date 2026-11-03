@@ -21,8 +21,8 @@
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed": "node --experimental-strip-types scripts/seed.ts",
-    "ingest": "node --experimental-strip-types scripts/ingest.ts"
+    "db:seed": "node --env-file-if-exists=.env.local --experimental-strip-types scripts/seed.ts",
+    "ingest": "node --env-file-if-exists=.env.local --experimental-strip-types scripts/ingest.ts"
   },
   "dependencies": {
     "drizzle-orm": "0.45.4",

@@ -1,5 +1,7 @@
 # CLAUDE.md — 18 G-TAS Design Vote
 
+> **Start with [`HANDOVER.md`](HANDOVER.md)**: current state, setup, deploy, and the build plan from step 3.
+
 > Build brief for Claude Code. Put this file in the root of the GitHub repo as `CLAUDE.md`.
 > Goal: take the 18 G-TAS design archive online so that **(1)** the five members of 18 G-TAS each pick their **six favourite designs**, and **(2)** the combined shortlist goes to a **public vote among the youth**.
 > Hosting: **GitHub → Vercel** (preview deployment per pull request, production on `main`).
