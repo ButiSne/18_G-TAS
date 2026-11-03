@@ -6,6 +6,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { eq } from "drizzle-orm";
 import type { createDb } from "../db/client.ts";
+import { CROSSOVER_TAG } from "../lib/design-line.ts";
 import { collection, colourway, design } from "../db/schema.ts";
 import { brandFlags } from "./brand-check.ts";
 import { classify, toArchivePath, type FileKind } from "./classify.ts";
@@ -212,6 +213,7 @@ export async function applyPlan(
           line: family.line.line,
           collectionId,
           printFiles: family.familyPrintFiles,
+          tags: family.line.crossover ? [CROSSOVER_TAG] : [],
         })
         .returning({ id: design.id });
       designId = row!.id;

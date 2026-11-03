@@ -51,12 +51,44 @@ describe("assignLine", () => {
 
   it("rejects override values other than EITEEN or G-TAS", () => {
     expect(() => parseLineOverrides({ "a/01": "ELDERS" })).toThrow();
+    expect(() => parseLineOverrides({ "a/01": { line: "Elders", crossover: true } })).toThrow();
   });
 
-  it("decides every tee and exactly the Round 10 designs with a clear signal", () => {
+  it("reads crossover overrides, and only an explicit true counts", () => {
+    expect(
+      parseLineOverrides({
+        "a/01": { line: "G-TAS", crossover: true },
+        "a/02": { line: "EITEEN", crossover: "yes" },
+        _note: "comments are skipped",
+      }),
+    ).toEqual({
+      "a/01": { line: "G-TAS", crossover: true },
+      "a/02": { line: "EITEEN", crossover: false },
+    });
+    expect(assignLine(fam(["Square", "Monogram"], "round-10/10"), overrides)).toMatchObject({
+      line: "G-TAS",
+      crossover: true,
+      source: "override",
+    });
+  });
+
+  it("decides every family in the archive with the owner's overrides", () => {
+    const { families } = groupFamilies(ofKind("display", "detail"));
+    expect(families.filter((f) => assignLine(f, overrides).line === null)).toEqual([]);
+    const crossovers = families.filter((f) => {
+      const d = assignLine(f, overrides);
+      return d.line !== null && d.crossover;
+    });
+    expect(crossovers.map((f) => f.title)).toEqual(["Youth Elders", "Square Monogram"]);
+  });
+
+  it("without Round 10 overrides, leaves exactly the designs with no clear signal undecided", () => {
+    const teeOnly = Object.fromEntries(
+      Object.entries(overrides).filter(([key]) => key.startsWith("tee-collection-72/")),
+    );
     const { families } = groupFamilies(ofKind("display", "detail"));
     const undecided = families
-      .filter((f) => assignLine(f, overrides).line === null)
+      .filter((f) => assignLine(f, teeOnly).line === null)
       .map((f) => f.key);
     expect(undecided).toEqual([
       "round-10/01", // Four Squares

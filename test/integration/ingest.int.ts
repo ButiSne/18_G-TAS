@@ -12,6 +12,7 @@ import postgres from "postgres";
 import sharp from "sharp";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as schema from "@/src/db/schema";
+import { parseLineOverrides } from "@/src/ingest/line";
 import { applyPlan, planIngest } from "@/src/ingest/run";
 import { localStore } from "@/src/ingest/storage";
 
@@ -43,7 +44,10 @@ async function put(path: string, body: Buffer | string) {
   await writeFile(file, body);
 }
 
-const overrides = { "test-set/t01": "EITEEN", "test-set/02": "G-TAS" } as const;
+const overrides = parseLineOverrides({
+  "test-set/t01": "EITEEN",
+  "test-set/02": { line: "G-TAS", crossover: true },
+});
 const run = async () =>
   applyPlan(await planIngest(join(root, "archive"), overrides), {
     db,
@@ -106,6 +110,7 @@ describe("ingest against Postgres", () => {
       where: eq(schema.design.familyKey, "test-set/02"),
     });
     expect(jewel!.printFiles).toEqual(["18GTAS-Test-Set/print/18GTAS_02_Jewel_artwork.pdf"]);
+    expect(jewel).toMatchObject({ line: "G-TAS", tags: ["crossover"] });
     const navy = await db.query.colourway.findFirst({ where: eq(schema.colourway.name, "Navy") });
     expect(navy!.views).toHaveLength(1);
   }, 60_000);

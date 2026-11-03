@@ -1,5 +1,18 @@
 {
-  "_source": "Read from 18GTAS_Tee_Collection_Sheet_1.jpg and _Sheet_2.jpg (EITEEN / ELDERS label under each tee) on 3 Nov 2026. ELDERS = G-TAS. Owner to review. Keys are <collection slug>/<family no>.",
+  "_crossover": "A crossover keeps one primary line but also shows under the other line (src/lib/design-line.ts).",
+  "_source": "Tee Collection 72: read from 18GTAS_Tee_Collection_Sheet_1.jpg and _Sheet_2.jpg (EITEEN / ELDERS label under each tee). Round 10: decided by the owner on 3 Nov 2026 from the Round 10 board. ELDERS = G-TAS. Keys are <collection slug>/<family no>.",
+  "round-10/01": "EITEEN",
+  "round-10/03": {
+    "line": "EITEEN",
+    "crossover": true
+  },
+  "round-10/04": "G-TAS",
+  "round-10/07": "G-TAS",
+  "round-10/09": "G-TAS",
+  "round-10/10": {
+    "line": "G-TAS",
+    "crossover": true
+  },
   "tee-collection-72/t01": "EITEEN",
   "tee-collection-72/t02": "EITEEN",
   "tee-collection-72/t03": "EITEEN",

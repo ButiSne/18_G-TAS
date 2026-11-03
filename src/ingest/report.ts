@@ -76,6 +76,10 @@ export function renderReport(
           ["skipped (no line yet)", s.skippedNoLine.length],
         ],
       ),
+      "Designs already in the database keep their title, line and tags, so edits made in " +
+        "/admin/designs survive a re-run. Changing `data/line-overrides.json` only affects " +
+        "designs imported for the first time.",
+      "",
     );
   }
 
@@ -157,7 +161,9 @@ export function renderReport(
       f.map((x) => [
         code(x.key),
         x.title,
-        x.line.line ? `${x.line.line} (${x.line.source})` : "**undecided**",
+        x.line.line
+          ? `${x.line.line}${x.line.crossover ? " × crossover" : ""} (${x.line.source})`
+          : "**undecided**",
         x.colourways.map((c) => (c.detailPaths.length ? `${c.name} +detail` : c.name)).join(", "),
         x.colourways.reduce((n, c) => n + c.printFiles.length, 0) + x.familyPrintFiles.length,
         code(x.slug),
