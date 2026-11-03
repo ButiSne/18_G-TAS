@@ -1,0 +1,15 @@
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+.env
+.env*.local
+.vercel
+coverage/
+playwright-report/
+test-results/
+# The design archive is ~600 MB of zips and print masters. It never enters git;
+# display images go to Vercel Blob and print-master paths are recorded at ingest.
+archive/
+ingest-report.md
