@@ -1,0 +1,26 @@
+# Local development database. Production runs on Neon through Vercel; this container
+# only exists so day-to-day work never touches production (HANDOVER.md §4.5).
+# The credentials below are for this local container only and are not secrets.
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: 18gtas-db
+    environment:
+      POSTGRES_USER: gtas
+      POSTGRES_PASSWORD: gtas
+      POSTGRES_DB: gtas_dev
+    ports:
+      # 5418 keeps clear of other local Postgres containers on 5432 and 5433.
+      - "127.0.0.1:5418:5432"
+    volumes:
+      - 18gtas-pgdata:/var/lib/postgresql/data
+      # Creates gtas_test next to gtas_dev, for integration tests (e.g. ingest idempotency).
+      - ./docker/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gtas -d gtas_dev"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  18gtas-pgdata:

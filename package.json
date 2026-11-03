@@ -22,6 +22,10 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "node --env-file-if-exists=.env.local --experimental-strip-types scripts/seed.ts",
+    "db:up": "docker compose up -d --wait db",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && docker compose up -d --wait db && pnpm db:migrate && pnpm db:seed",
+    "db:psql": "docker compose exec db psql -U gtas -d gtas_dev",
     "ingest": "node --env-file-if-exists=.env.local --experimental-strip-types scripts/ingest.ts"
   },
   "dependencies": {
