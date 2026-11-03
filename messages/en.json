@@ -1,32 +1,91 @@
 {
   "site": {
-    "name": "18 G-TAS Design Vote",
-    "tagline": "Help choose the next ten tees."
+    "name": "18 G-TAS",
+    "title": "18 G-TAS is back",
+    "tagline": "KZN's own label returns. Help choose the first drop."
   },
   "home": {
-    "eyebrow": "XVIII · G-TAS",
-    "title": "Which design makes the cut?",
-    "lead": "Our team has picked its favourites. Next, you vote. Then we take the best ten to market: five sublimation, five in other prints.",
-    "stages": {
-      "team": {
-        "title": "Team picks",
-        "body": "Each team member ranks their favourite designs in private."
+    "brand": "18 G-TAS",
+    "lines": "EITEEN · G-TAS",
+    "eyebrow": "XVIII · KZN · Mzansi",
+    "headlineTop": "18 G-TAS",
+    "headlineIs": "is",
+    "headlineBack": "back.",
+    "foundedYear": "",
+    "returnYear": "2026",
+    "timelineEst": "Est.",
+    "timelineBack": "Back",
+    "lead": "The wait is over. KZN's own label returns with new designs for two generations, and this time the first drop is chosen by you.",
+    "ctaShare": "Tell your crew on WhatsApp",
+    "ctaHow": "How the comeback works",
+    "shareText": "18 G-TAS is back! Help choose the first drop:",
+    "peek": {
+      "eyebrow": "First look · unreleased",
+      "title": "{count} new designs. Nobody has seen them yet.",
+      "titleFallback": "New designs. Nobody has seen them yet.",
+      "body": "The team is narrowing them down right now. Soon you will swipe through the shortlist on your phone: YEBO or CHA. Your swipes help decide what we make.",
+      "stamp": "Unreleased"
+    },
+    "twoLines": {
+      "title": "Two lines. One brand.",
+      "count": "{count} new designs",
+      "eiteen": {
+        "name": "EITEEN",
+        "tag": "For the youth",
+        "body": "Kasi, pixel, street. Loud colour and big 18s, made for the block."
       },
-      "public": {
-        "title": "You vote",
-        "body": "Our Facebook and WhatsApp community votes on the shortlist."
-      },
-      "final": {
-        "title": "Final ten",
-        "body": "Five sublimation and five other prints go to market."
+      "gtas": {
+        "name": "XVIII · G-TAS",
+        "tag": "For the elders",
+        "body": "Gold, Roman numerals and monograms. Quiet luxury that lasts."
       }
     },
-    "cta": "Vote now",
-    "comingSoon": "Voting opens soon. Watch our Facebook page and WhatsApp groups for the link."
+    "how": {
+      "title": "How the comeback works",
+      "steps": {
+        "team": {
+          "title": "The team picks",
+          "body": "Our team ranks every new design in private and builds a shortlist."
+        },
+        "public": {
+          "title": "You swipe",
+          "body": "Open the link from our Facebook page or your WhatsApp group. Swipe right for YEBO, left for CHA. No account needed."
+        },
+        "final": {
+          "title": "Ten tees drop",
+          "body": "Your votes and the team's picks choose ten tees for the comeback drop: five sublimation, five in other prints."
+        }
+      }
+    },
+    "closing": {
+      "title": "18 is back. Pass it on.",
+      "body": "Voting opens soon. Share this with your crew so nobody misses the first drop.",
+      "note": "Watch our Facebook page and WhatsApp groups for the voting link."
+    }
+  },
+  "footer": {
+    "tagline": "Custom Clothing & Design · KwaZulu-Natal, Mzansi",
+    "navLabel": "Legal and privacy",
+    "links": {
+      "terms": "Terms of use",
+      "privacy": "Privacy & POPIA",
+      "data": "Data we collect",
+      "cookies": "Cookies",
+      "copyright": "Copyright & design rights",
+      "contact": "Contact us"
+    },
+    "copyright": "© {year} 18 G-TAS Custom Clothing & Design. All rights reserved.",
+    "ip": "All designs, artwork, the 18 mark, EITEEN and XVIII · G-TAS belong to 18 G-TAS. Do not copy, print or sell them.",
+    "affiliation": "18 G-TAS is not affiliated with any football club, federation or sportswear brand."
   },
   "legal": {
-    "privacy": "Privacy",
+    "home": "18 G-TAS",
+    "privacy": "Privacy & POPIA",
+    "terms": "Terms of use",
+    "copyright": "Copyright & design rights",
     "rules": "Competition rules",
-    "toBeReviewed": "TO BE REVIEWED. This is placeholder text and has not been checked by a legal adviser."
+    "toBeReviewed": "TO BE REVIEWED. This is placeholder text and has not been checked by a legal adviser.",
+    "lastUpdated": "Last updated 4 November 2026",
+    "contactPending": "contact email to be confirmed"
   }
 }
