@@ -18,6 +18,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:int": "vitest run --config vitest.int.config.ts",
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
@@ -29,11 +30,13 @@
     "ingest": "node --env-file-if-exists=.env.local --experimental-strip-types scripts/ingest.ts"
   },
   "dependencies": {
+    "@vercel/blob": "2.8.2",
     "drizzle-orm": "0.45.4",
     "next": "16.4.4",
     "postgres": "3.4.7",
     "react": "19.3.1",
     "react-dom": "19.3.1",
+    "sharp": "0.35.5",
     "zod": "4.6.7"
   },
   "devDependencies": {
@@ -52,7 +55,8 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "esbuild"
+      "esbuild",
+      "sharp"
     ]
   }
 }

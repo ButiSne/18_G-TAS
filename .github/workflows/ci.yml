@@ -8,6 +8,23 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    services:
+      # Same major version as docker-compose.yml. Only integration tests use it.
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: gtas
+          POSTGRES_PASSWORD: gtas
+          POSTGRES_DB: gtas_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U gtas -d gtas_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+    env:
+      DATABASE_URL_TEST: postgres://gtas:gtas@localhost:5432/gtas_test
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -20,4 +37,5 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm format:check
       - run: pnpm test
+      - run: pnpm test:int
       - run: pnpm build
