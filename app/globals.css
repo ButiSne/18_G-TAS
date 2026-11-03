@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+/* Brand tokens (CLAUDE.md §1). Use these, nothing else. */
+@theme {
+  --color-onyx: #0d0d0d;
+  --color-ivory: #f3ede2;
+  --color-gold: #c9a24a;
+  --color-gold-light: #f7e9bf;
+  --color-gold-dark: #8c6a1f;
+  --color-midnight: #141b2d;
+  --color-mzansi-green: #007a4d;
+  --color-mzansi-gold: #ffb612;
+  --color-teal: #1aa3b8;
+  --color-coral: #ff6b35;
+  --color-pink: #ff3ea5;
+  --color-lime: #c6ff3d;
+
+  --font-luxe: var(--font-playfair), serif;
+  --font-youth: var(--font-archivo-black), sans-serif;
+  --font-numerals: var(--font-cinzel), serif;
+  --font-sans: var(--font-montserrat), system-ui, sans-serif;
+  --font-mono: var(--font-space-mono), ui-monospace, monospace;
+}
+
+/* Semantic surface tokens, light by default. Gold body text is only used on onyx:
+   #C9A24A on #0D0D0D is 8.6:1, but gold on ivory is ~2.2:1 and fails WCAG AA, so in
+   light mode accents switch to gold-dark (#8C6A1F on #F3EDE2 ≈ 4.6:1). */
+:root {
+  --bg: var(--color-ivory);
+  --fg: var(--color-onyx);
+  --accent: var(--color-gold-dark);
+  --muted: #5a5248;
+  --card: #fffaf1;
+  --line: #d9cfbd;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: var(--color-onyx);
+    --fg: var(--color-ivory);
+    --accent: var(--color-gold);
+    --muted: #b9b0a2;
+    --card: #17171a;
+    --line: #2c2a26;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: var(--color-onyx);
+  --fg: var(--color-ivory);
+  --accent: var(--color-gold);
+  --muted: #b9b0a2;
+  --card: #17171a;
+  --line: #2c2a26;
+}
+
+html {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  min-height: 100dvh;
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

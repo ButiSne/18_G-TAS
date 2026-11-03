@@ -1,0 +1,32 @@
+{
+  "site": {
+    "name": "18 G-TAS Design Vote",
+    "tagline": "Help choose the next ten tees."
+  },
+  "home": {
+    "eyebrow": "XVIII · G-TAS",
+    "title": "Which design makes the cut?",
+    "lead": "Our team has picked its favourites. Next, you vote. Then we take the best ten to market: five sublimation, five in other prints.",
+    "stages": {
+      "team": {
+        "title": "Team picks",
+        "body": "Each team member ranks their favourite designs in private."
+      },
+      "public": {
+        "title": "You vote",
+        "body": "Our Facebook and WhatsApp community votes on the shortlist."
+      },
+      "final": {
+        "title": "Final ten",
+        "body": "Five sublimation and five other prints go to market."
+      }
+    },
+    "cta": "Vote now",
+    "comingSoon": "Voting opens soon. Watch our Facebook page and WhatsApp groups for the link."
+  },
+  "legal": {
+    "privacy": "Privacy",
+    "rules": "Competition rules",
+    "toBeReviewed": "TO BE REVIEWED. This is placeholder text and has not been checked by a legal adviser."
+  }
+}
