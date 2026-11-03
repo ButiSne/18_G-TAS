@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import en from "@/messages/en.json";
 import { fill } from "@/src/lib/messages";
-import { LEGAL_LINKS, SITE_URL, whatsappShareUrl } from "@/src/lib/site";
+import { LEGAL_LINKS, SITE_URL, whatsappChatUrl, whatsappShareUrl } from "@/src/lib/site";
 import { normaliseRef } from "@/src/lib/tally";
 
 describe("whatsappShareUrl", () => {
@@ -18,10 +18,14 @@ describe("whatsappShareUrl", () => {
 
 describe("footer legal links", () => {
   it("point at pages that exist", () => {
-    for (const { href } of LEGAL_LINKS) {
+    for (const { href } of LEGAL_LINKS.filter((l) => l.href.startsWith("/"))) {
       const path = href.split("#")[0]!.replace(/^\//, "");
       expect(existsSync(new URL(`../app/(legal)/${path}/page.tsx`, import.meta.url))).toBe(true);
     }
+  });
+
+  it("open a WhatsApp chat with the brand for 'Contact us'", () => {
+    expect(LEGAL_LINKS.find((l) => l.key === "contact")?.href).toBe("https://wa.me/27746730051");
   });
 
   it("have a label each, and leave out competition rules (no prize draw)", () => {
@@ -39,6 +43,12 @@ describe("footer legal links", () => {
         "/copyright",
       ]),
     );
+  });
+});
+
+describe("whatsappChatUrl", () => {
+  it("turns a formatted SA number into a wa.me link", () => {
+    expect(whatsappChatUrl("+27 74 673 0051")).toBe("https://wa.me/27746730051");
   });
 });
 

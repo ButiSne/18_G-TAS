@@ -18,6 +18,9 @@ export function SiteFooter() {
               <li key={l.key}>
                 <Link
                   href={l.href}
+                  {...(l.href.startsWith("http")
+                    ? { target: "_blank", rel: "noopener noreferrer" }
+                    : {})}
                   className="inline-flex min-h-11 items-center underline-offset-4 hover:underline"
                 >
                   {f.links[l.key]}

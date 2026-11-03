@@ -1,6 +1,6 @@
 import { ContactEmail } from "@/src/components/contact-email";
 import { getMessages } from "@/src/lib/messages";
-import { LEGAL_NAME } from "@/src/lib/site";
+import { INFORMATION_OFFICER, LEGAL_NAME_FULL } from "@/src/lib/site";
 
 const t = getMessages();
 
@@ -12,15 +12,15 @@ export default function Privacy() {
     <>
       <h1>Privacy &amp; POPIA</h1>
       <p>
-        This notice explains what {LEGAL_NAME} (&ldquo;18 G-TAS&rdquo;, &ldquo;we&rdquo;) collects
-        on this site, why, and what you can ask us to do with it, under the Protection of Personal
-        Information Act (POPIA).
+        This notice explains what {LEGAL_NAME_FULL} (&ldquo;we&rdquo;) collects on this site, why,
+        and what you can ask us to do with it, under the Protection of Personal Information Act
+        (POPIA).
       </p>
 
       <h2 id="who">Who is responsible</h2>
       <p>
-        The responsible party is {LEGAL_NAME}, KwaZulu-Natal, South Africa. Information officer:{" "}
-        <strong>[to be confirmed]</strong>. Contact: <ContactEmail />.
+        The responsible party is {LEGAL_NAME_FULL}, KwaZulu-Natal, South Africa. Information
+        officer: <strong>{INFORMATION_OFFICER}</strong>. Contact: <ContactEmail />.
       </p>
 
       <h2 id="data">Data we collect</h2>
