@@ -71,11 +71,118 @@ body {
   outline-offset: 2px;
 }
 
+/* A section that is onyx in both themes (hero, footer, brand cards). Re-points the
+   semantic tokens, so text, borders and focus rings stay readable on dark in light mode. */
+.surface-dark {
+  --bg: var(--color-onyx);
+  --fg: var(--color-ivory);
+  --accent: var(--color-gold);
+  --muted: #b9b0a2;
+  --card: #17171a;
+  --line: #2c2a26;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+/* --- Motion: the comeback hero. Everything stops under prefers-reduced-motion. --- */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.35em);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-rise {
+  animation: rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% center;
+  }
+}
+.text-gold-shimmer {
+  background: linear-gradient(
+    100deg,
+    var(--color-gold) 0%,
+    var(--color-gold) 35%,
+    var(--color-gold-light) 50%,
+    var(--color-gold) 65%,
+    var(--color-gold) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 5s linear infinite;
+}
+
+@keyframes draw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.animate-draw {
+  transform-origin: left;
+  animation: draw 1.4s 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.marquee {
+  animation: marquee 45s linear infinite;
+}
+
+/* --- Legal pages: readable long-form text on a phone. --- */
+.legal h1 {
+  font-family: var(--font-luxe);
+  font-size: 2.25rem;
+  line-height: 1.15;
+}
+.legal h2 {
+  margin-top: 2.25rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  scroll-margin-top: 1rem;
+}
+.legal p,
+.legal li {
+  margin-top: 0.75rem;
+  color: var(--muted);
+  line-height: 1.65;
+}
+.legal ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+.legal strong {
+  color: var(--fg);
+}
+.legal a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+  /* Infinite loops would flicker at 0.01 ms: stop them outright. */
+  .marquee,
+  .text-gold-shimmer {
+    animation: none !important;
   }
 }
