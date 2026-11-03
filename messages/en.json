@@ -2,23 +2,23 @@
   "site": {
     "name": "18 G-TAS",
     "title": "18 G-TAS is back",
-    "tagline": "KZN's own label returns. Help choose the first drop."
+    "tagline": "Est. 2008. Eighteen years later, 18 G-TAS is back. Help choose the first drop."
   },
   "home": {
     "brand": "18 G-TAS",
     "lines": "EITEEN · G-TAS",
-    "eyebrow": "XVIII · KZN · Mzansi",
+    "eyebrow": "XVIII years · KZN · Mzansi",
     "headlineTop": "18 G-TAS",
     "headlineIs": "is",
     "headlineBack": "back.",
-    "foundedYear": "",
+    "foundedYear": "2008",
     "returnYear": "2026",
     "timelineEst": "Est.",
     "timelineBack": "Back",
-    "lead": "The wait is over. KZN's own label returns with new designs for two generations, and this time the first drop is chosen by you.",
+    "lead": "Est. 2008. Eighteen years later, KZN's own label is back with new designs for two generations, and this time the first drop is chosen by you.",
     "ctaShare": "Tell your crew on WhatsApp",
     "ctaHow": "How the comeback works",
-    "shareText": "18 G-TAS is back! Help choose the first drop:",
+    "shareText": "18 G-TAS is back after 18 years! Help choose the first drop:",
     "peek": {
       "eyebrow": "First look · unreleased",
       "title": "{count} new designs. Nobody has seen them yet.",
@@ -64,7 +64,7 @@
     }
   },
   "footer": {
-    "tagline": "Custom Clothing & Design · KwaZulu-Natal, Mzansi",
+    "tagline": "Est. 2008 · Custom Clothing & Design · KwaZulu-Natal, Mzansi",
     "navLabel": "Legal and privacy",
     "links": {
       "terms": "Terms of use",
@@ -74,7 +74,7 @@
       "copyright": "Copyright & design rights",
       "contact": "Contact us"
     },
-    "copyright": "© {year} 18 G-TAS Custom Clothing & Design. All rights reserved.",
+    "copyright": "© {year} 18 G-TAS Custom Clothing & Design, trading as 18 G-TAS. All rights reserved.",
     "ip": "All designs, artwork, the 18 mark, EITEEN and XVIII · G-TAS belong to 18 G-TAS. Do not copy, print or sell them.",
     "affiliation": "18 G-TAS is not affiliated with any football club, federation or sportswear brand."
   },
@@ -86,6 +86,6 @@
     "rules": "Competition rules",
     "toBeReviewed": "TO BE REVIEWED. This is placeholder text and has not been checked by a legal adviser.",
     "lastUpdated": "Last updated 4 November 2026",
-    "contactPending": "contact email to be confirmed"
+    "whatsapp": "WhatsApp {number}"
   }
 }

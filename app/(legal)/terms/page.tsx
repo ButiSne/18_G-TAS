@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ContactEmail } from "@/src/components/contact-email";
 import { getMessages } from "@/src/lib/messages";
-import { LEGAL_NAME } from "@/src/lib/site";
+import { LEGAL_NAME_FULL } from "@/src/lib/site";
 
 const t = getMessages();
 
@@ -14,8 +14,9 @@ export default function Terms() {
     <>
       <h1>Terms of use</h1>
       <p>
-        These terms apply when you use this site, run by {LEGAL_NAME} (&ldquo;18 G-TAS&rdquo;). By
-        using it you agree to them. If you are under 18, please read them with a parent or guardian.
+        These terms apply when you use this site, run by {LEGAL_NAME_FULL} (&ldquo;18 G-TAS&rdquo;).
+        By using it you agree to them. If you are under 18, please read them with a parent or
+        guardian.
       </p>
 
       <h2 id="vote">The vote</h2>

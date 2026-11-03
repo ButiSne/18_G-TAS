@@ -1,6 +1,6 @@
 import { ContactEmail } from "@/src/components/contact-email";
 import { getMessages } from "@/src/lib/messages";
-import { LEGAL_NAME } from "@/src/lib/site";
+import { LEGAL_NAME_FULL } from "@/src/lib/site";
 
 const t = getMessages();
 
@@ -12,7 +12,7 @@ export default function Copyright() {
     <>
       <h1>Copyright &amp; design rights</h1>
       <p>
-        &copy; {new Date().getFullYear()} {LEGAL_NAME}. All rights reserved.
+        &copy; {new Date().getFullYear()} {LEGAL_NAME_FULL}. All rights reserved.
       </p>
 
       <h2 id="ours">What belongs to 18 G-TAS</h2>
