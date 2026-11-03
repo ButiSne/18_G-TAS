@@ -3,9 +3,8 @@
 // created when no round exists yet.
 import { createDb } from "../src/db/client.ts";
 import { member, selectionRound } from "../src/db/schema.ts";
-import { parsePeople } from "../src/lib/people.ts";
+import { parsePeople, withRoles } from "../src/lib/people.ts";
 
-const db = createDb();
 const admins = parsePeople(process.env.ADMIN_EMAILS);
 const members = parsePeople(process.env.MEMBER_EMAILS);
 
@@ -14,16 +13,13 @@ if (admins.length === 0) {
   process.exit(1);
 }
 
-for (const [people, role] of [
-  [admins, "admin"],
-  [members, "member"],
-] as const) {
-  for (const p of people) {
-    await db
-      .insert(member)
-      .values({ ...p, role })
-      .onConflictDoUpdate({ target: member.email, set: { name: p.name, role } });
-  }
+const db = createDb();
+const people = withRoles(admins, members);
+for (const p of people) {
+  await db
+    .insert(member)
+    .values(p)
+    .onConflictDoUpdate({ target: member.email, set: { name: p.name, role: p.role } });
 }
 
 const existing = await db.select({ id: selectionRound.id }).from(selectionRound).limit(1);
@@ -31,5 +27,6 @@ if (existing.length === 0) {
   await db.insert(selectionRound).values({ title: "Team round 1" });
 }
 
-console.log(`Seeded ${admins.length} admin(s), ${members.length} member(s).`);
+const count = (role: string) => people.filter((p) => p.role === role).length;
+console.log(`Seeded ${count("admin")} admin(s), ${count("member")} member(s).`);
 process.exit(0);
