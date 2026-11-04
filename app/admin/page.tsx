@@ -1,18 +1,22 @@
 import Link from "next/link";
 import { SubmitButton } from "@/src/components/submit-button";
-import { buttonGhost, TeamHeader } from "@/src/components/team-ui";
+import { buttonGhost, buttonPrimary, TeamHeader } from "@/src/components/team-ui";
 import { getDb } from "@/src/db/server";
 import { requireAdmin } from "@/src/lib/auth/session";
 import { teamOverview } from "@/src/lib/auth/store";
 import { formatSATime } from "@/src/lib/format";
 import { fill, getMessages } from "@/src/lib/messages";
+import { currentPublicRound, publicEntries } from "@/src/lib/stages";
 import { adminRoundOverview, currentRound } from "@/src/lib/team-round";
 import { closeRoundAction, revokeSessionsAction, unlockMemberAction } from "./actions";
+import { ChannelLinks } from "./channel-links";
 import { InviteButton } from "./invite-button";
 import { OpenRoundForm } from "./open-round-form";
+import { advancePublicRoundAction, setLiveResultsAction } from "./stage-actions";
 
 const t = getMessages();
 const r = t.round;
+const a = t.admin;
 
 export const metadata = { title: t.auth.adminTitle, robots: { index: false, follow: false } };
 
@@ -22,11 +26,84 @@ export default async function Admin() {
   const team = await teamOverview(db, new Date());
   const round = await currentRound(db);
   const roster = round && round.status !== "draft" ? await adminRoundOverview(db, round.id) : [];
+  const pr = await currentPublicRound(db);
+  const entries = pr ? (await publicEntries(db, pr.id)).length : 0;
+  const nextStep = { open: a.openVote, closed: a.closeVote, published: a.publish } as const;
+  const to = pr
+    ? ({ draft: "open", open: "closed", closed: "published" } as const)[pr.status as "draft"]
+    : undefined;
 
   return (
     <div className="mx-auto max-w-xl px-4 pt-6 pb-14">
       <TeamHeader />
       <h1 className="font-luxe mt-10 text-4xl">{t.auth.adminTitle}</h1>
+
+      <nav aria-label={t.auth.adminTitle} className="mt-4 grid grid-cols-2 gap-2">
+        <Link href="/admin/designs" className={buttonGhost}>
+          {a.nav.designs}
+        </Link>
+        {round?.status === "closed" && (
+          <Link href="/admin/shortlist" className={`${buttonPrimary} col-span-2`}>
+            {a.nav.shortlist}
+          </Link>
+        )}
+        {pr && (
+          <Link href="/admin/results" className={buttonGhost}>
+            {a.nav.results}
+          </Link>
+        )}
+        {pr && (pr.status === "closed" || pr.status === "published") && (
+          <Link href="/admin/final" className={buttonGhost}>
+            {a.nav.final}
+          </Link>
+        )}
+      </nav>
+
+      <section className="mt-8 rounded-3xl border border-[var(--line)] bg-[var(--card)] p-5">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="font-youth text-2xl">{a.publicTitle}</h2>
+          {pr && (
+            <span className="rounded-full border border-[var(--line)] px-2 py-0.5 font-mono text-[10px] tracking-widest uppercase">
+              {r.statusLabel[pr.status]}
+            </span>
+          )}
+        </div>
+        {!pr ? (
+          <p className="mt-2 text-sm text-[var(--muted)]">{a.publicNone}</p>
+        ) : (
+          <>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              {fill(a.publicEntries, { count: entries })}
+            </p>
+            {to && (
+              <form action={advancePublicRoundAction.bind(null, pr.id, to)} className="mt-3">
+                <SubmitButton
+                  className={to === "open" ? buttonPrimary : `${buttonGhost} w-full`}
+                  pending="…"
+                >
+                  {nextStep[to]}
+                </SubmitButton>
+              </form>
+            )}
+            <form
+              action={setLiveResultsAction.bind(null, pr.id, !pr.showLiveResults)}
+              className="mt-2"
+            >
+              <SubmitButton className={`${buttonGhost} w-full`} pending="…">
+                {pr.showLiveResults ? "✓ " : ""}
+                {a.liveResults}
+              </SubmitButton>
+            </form>
+            {(pr.status === "draft" || pr.status === "open") && (
+              <div className="mt-5 border-t border-[var(--line)] pt-4">
+                <h3 className="font-bold">{a.linksTitle}</h3>
+                <p className="text-sm text-[var(--muted)]">{a.linksBody}</p>
+                <ChannelLinks />
+              </div>
+            )}
+          </>
+        )}
+      </section>
 
       {round && (
         <section className="mt-8 rounded-3xl border border-[var(--line)] bg-[var(--card)] p-5">

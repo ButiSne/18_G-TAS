@@ -15,7 +15,10 @@ import {
 export const memberRole = pgEnum("member_role", ["member", "admin"]);
 export const designLine = pgEnum("design_line", ["EITEEN", "G-TAS"]);
 export const roundStatus = pgEnum("round_status", ["draft", "open", "closed", "published"]);
-export const publicMode = pgEnum("public_mode", ["favourite", "head_to_head"]);
+// "swipe" is the default public mode (CLAUDE.md §0.7). It is set in code when a public
+// round is created, not as a column default: Postgres cannot use a newly added enum value
+// in the same transaction that adds it.
+export const publicMode = pgEnum("public_mode", ["favourite", "head_to_head", "swipe"]);
 export const finalSlot = pgEnum("final_slot", ["sublimation", "other"]);
 
 const id = () => uuid("id").primaryKey().defaultRandom();
@@ -169,6 +172,7 @@ export const publicRound = pgTable("public_round", {
   id: id(),
   selectionRoundId: uuid("selection_round_id").references(() => selectionRound.id),
   title: text("title").notNull(),
+  createdAt: createdAt(),
   mode: publicMode("mode").notNull().default("favourite"),
   status: roundStatus("status").notNull().default("draft"),
   opensAt: timestamp("opens_at", { withTimezone: true }),
@@ -214,6 +218,52 @@ export const vote = pgTable(
     createdAt: createdAt(),
   },
   (t) => [unique("vote_one_per_device").on(t.publicRoundId, t.deviceHash)],
+);
+
+// Swipe mode: one YEBO (liked) or CHA per design per device. Hashes only, like `vote`.
+export const swipe = pgTable(
+  "swipe",
+  {
+    id: id(),
+    publicRoundId: uuid("public_round_id")
+      .notNull()
+      .references(() => publicRound.id, { onDelete: "cascade" }),
+    entryId: uuid("entry_id")
+      .notNull()
+      .references(() => publicEntry.id, { onDelete: "cascade" }),
+    deviceHash: text("device_hash").notNull(),
+    ipHash: text("ip_hash").notNull(),
+    liked: boolean("liked").notNull(),
+    ageBracket: text("age_bracket"),
+    province: text("province"),
+    ref: text("ref"),
+    createdAt: createdAt(),
+  },
+  (t) => [unique("swipe_once_per_device").on(t.publicRoundId, t.deviceHash, t.entryId)],
+);
+
+// Totals kept after raw swipes are deleted 90 days after publish (brief §6).
+export const swipeAggregate = pgTable(
+  "swipe_aggregate",
+  {
+    id: id(),
+    publicRoundId: uuid("public_round_id")
+      .notNull()
+      .references(() => publicRound.id),
+    entryId: uuid("entry_id")
+      .notNull()
+      .references(() => publicEntry.id),
+    ref: text("ref"),
+    ageBracket: text("age_bracket"),
+    province: text("province"),
+    likes: integer("likes").notNull(),
+    passes: integer("passes").notNull(),
+  },
+  (t) => [
+    unique("swipe_aggregate_cell")
+      .on(t.publicRoundId, t.entryId, t.ref, t.ageBracket, t.province)
+      .nullsNotDistinct(),
+  ],
 );
 
 export const matchup = pgTable("matchup", {
