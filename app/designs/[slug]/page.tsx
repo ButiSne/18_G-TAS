@@ -7,7 +7,12 @@ import { requireMember } from "@/src/lib/auth/session";
 import { loadCatalogue, swatchFor } from "@/src/lib/catalogue";
 import { lineBadge } from "@/src/lib/design-line";
 import { fill, getMessages } from "@/src/lib/messages";
-import { isPrintMethod, PRINT_METHOD_LABELS } from "@/src/lib/print-methods";
+import {
+  isPlacement,
+  isPrintMethod,
+  PLACEMENT_LABELS,
+  PRINT_METHOD_LABELS,
+} from "@/src/lib/print-methods";
 
 const t = getMessages();
 const c = t.catalogue;
@@ -23,10 +28,17 @@ export default async function DesignDetail({ params, searchParams }: Props) {
   const design = (await loadCatalogue(getDb()!)).find((d) => d.slug === slug);
   if (!design) notFound();
 
-  const requested = Number((await searchParams).c);
+  const query = await searchParams;
+  const requested = Number(query.c);
   const index = Number.isInteger(requested) && design.colourways[requested] ? requested : 0;
   const cw = design.colourways[index]!;
+  const back = cw.views.find((v) => v.label === "Back");
+  const onBack = Boolean(back) && query.v === "back";
+  const shown = onBack ? back! : cw;
   const alt = (name: string) => fill(c.colourwayOf, { design: design.title, colourway: name });
+  const shownAlt = `${alt(cw.name)}${onBack ? ` (${c.backView})` : ""}`;
+  // Back views get the front/back toggle; any other extra views stay in the detail grid.
+  const extras = cw.views.filter((v) => v.label !== "Back");
 
   return (
     <>
@@ -40,27 +52,49 @@ export default async function DesignDetail({ params, searchParams }: Props) {
 
       <div className="mt-2 grid gap-6 md:grid-cols-2">
         {/* Tap the image for the full 1600 px file: the phone's own pinch-zoom does the rest. */}
-        <a
-          href={cw.imageUrl}
-          target="_blank"
-          rel="noopener"
-          aria-label={`${c.zoom}: ${alt(cw.name)}`}
-          className="relative block aspect-[1200/1380] overflow-hidden rounded-3xl border border-[var(--line)] bg-[var(--card)]"
-        >
-          <Image
-            src={cw.imageUrl}
-            alt={alt(cw.name)}
-            fill
-            priority
-            sizes="(min-width: 768px) 50vw, 100vw"
-            placeholder={cw.blurDataUrl ? "blur" : "empty"}
-            blurDataURL={cw.blurDataUrl ?? undefined}
-            className="object-cover"
-          />
-          <span className="absolute right-3 bottom-3 rounded-full bg-black/60 px-3 py-1 font-mono text-[10px] tracking-widest text-white uppercase">
-            ⤢ {c.zoom}
-          </span>
-        </a>
+        <div>
+          <a
+            href={shown.imageUrl}
+            target="_blank"
+            rel="noopener"
+            aria-label={`${c.zoom}: ${shownAlt}`}
+            className="relative block aspect-[1200/1380] overflow-hidden rounded-3xl border border-[var(--line)] bg-[var(--card)]"
+          >
+            <Image
+              src={shown.imageUrl}
+              alt={shownAlt}
+              fill
+              priority
+              sizes="(min-width: 768px) 50vw, 100vw"
+              placeholder={!onBack && cw.blurDataUrl ? "blur" : "empty"}
+              blurDataURL={(!onBack && cw.blurDataUrl) || undefined}
+              className="object-cover"
+            />
+            <span className="absolute right-3 bottom-3 rounded-full bg-black/60 px-3 py-1 font-mono text-[10px] tracking-widest text-white uppercase">
+              ⤢ {c.zoom}
+            </span>
+          </a>
+          {back && (
+            <nav aria-label={c.backView} className="mt-3 grid grid-cols-2 gap-2">
+              {[false, true].map((b) => (
+                <Link
+                  key={String(b)}
+                  href={`/designs/${design.slug}?c=${index}${b ? "&v=back" : ""}`}
+                  aria-current={onBack === b ? "true" : undefined}
+                  replace
+                  scroll={false}
+                  className={`inline-flex min-h-11 items-center justify-center rounded-full border text-sm font-bold ${
+                    onBack === b
+                      ? "border-[var(--fg)] bg-[var(--fg)] text-[var(--bg)]"
+                      : "border-[var(--line)]"
+                  }`}
+                >
+                  {b ? c.back : c.front}
+                </Link>
+              ))}
+            </nav>
+          )}
+        </div>
 
         <div>
           <p className="font-mono text-xs tracking-[0.25em] text-[var(--accent)] uppercase">
@@ -85,7 +119,7 @@ export default async function DesignDetail({ params, searchParams }: Props) {
                     >
                       <span
                         className="size-4 rounded-full ring-1 ring-black/20"
-                        style={{ background: swatchFor(x.teeColour) }}
+                        style={{ background: swatchFor(x.teeColour, x.teeHex) }}
                       />
                       {x.name}
                     </Link>
@@ -105,16 +139,33 @@ export default async function DesignDetail({ params, searchParams }: Props) {
               </dd>
             </div>
             <div className="rounded-2xl border border-[var(--line)] p-3">
-              <dt className="text-[var(--muted)]">{c.colour}</dt>
-              <dd className="mt-1 font-bold">{cw.teeColour ?? "—"}</dd>
+              <dt className="text-[var(--muted)]">{c.placement}</dt>
+              <dd className="mt-1 font-bold">
+                {isPlacement(design.placement) ? PLACEMENT_LABELS[design.placement] : "—"}
+              </dd>
+            </div>
+            <div className="col-span-2 rounded-2xl border border-[var(--line)] p-3">
+              <dt className="text-[var(--muted)]">{c.teeColour}</dt>
+              <dd className="mt-1 flex items-center gap-2 font-bold">
+                <span
+                  className="size-5 rounded-full ring-1 ring-black/20 dark:ring-white/30"
+                  style={{ background: swatchFor(cw.teeColour, cw.teeHex) }}
+                />
+                {cw.teeColour ?? "—"}
+                {cw.teeHex && (
+                  <span className="font-mono text-xs font-normal text-[var(--muted)]">
+                    {cw.teeHex}
+                  </span>
+                )}
+              </dd>
             </div>
           </dl>
 
-          {cw.views.length > 0 && (
+          {extras.length > 0 && (
             <>
               <h2 className="mt-6 text-sm font-bold">{c.details}</h2>
               <div className="mt-2 grid grid-cols-2 gap-2">
-                {cw.views.map((v, i) => (
+                {extras.map((v, i) => (
                   <a
                     key={v.imageUrl}
                     href={v.imageUrl}

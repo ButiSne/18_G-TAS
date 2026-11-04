@@ -20,6 +20,11 @@ export const roundStatus = pgEnum("round_status", ["draft", "open", "closed", "p
 // in the same transaction that adds it.
 export const publicMode = pgEnum("public_mode", ["favourite", "head_to_head", "swipe"]);
 export const finalSlot = pgEnum("final_slot", ["sublimation", "other"]);
+// A team member's note on a design they ticked: a comment, or a suggested change.
+export const pickNoteKind = pgEnum("pick_note_kind", ["comment", "suggestion"]);
+
+/** One extra image of a colourway: the back of the tee, or a close-up. */
+export type ColourwayView = { imageUrl: string; thumbUrl: string; label?: string };
 
 const id = () => uuid("id").primaryKey().defaultRandom();
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
@@ -54,6 +59,8 @@ export const design = pgTable("design", {
   // Validated against src/lib/print-methods.ts in server actions rather than a DB enum,
   // because the owner has not confirmed the list yet and an enum change is a migration.
   printMethod: text("print_method"),
+  // Where the print sits (src/lib/print-methods.ts PLACEMENTS), from the design pack.
+  placement: text("placement"),
   tags: text("tags")
     .array()
     .notNull()
@@ -77,9 +84,11 @@ export const colourway = pgTable("colourway", {
   // A tiny WebP as a data URL: an instant placeholder while the real image loads on 4G.
   blurDataUrl: text("blur_data_url"),
   // Extra views of this colourway (close-up detail shots), shown in the zoom.
-  views: jsonb("views").$type<{ imageUrl: string; thumbUrl: string }[]>().notNull().default([]),
+  views: jsonb("views").$type<ColourwayView[]>().notNull().default([]),
   // Canonical tee colour for the catalogue filter (src/ingest/tee-colour.ts).
   teeColour: text("tee_colour"),
+  // The exact fabric colour from the design pack ("#0D0D0D"), for true-colour swatches.
+  teeHex: text("tee_hex"),
   // Paths only. Print masters are never uploaded; the print team finds them in the archive.
   printFiles: jsonb("print_files").$type<string[]>().notNull().default([]),
   sortOrder: integer("sort_order").notNull().default(0),
@@ -118,8 +127,14 @@ export const roundMember = pgTable(
       .notNull()
       .references(() => member.id),
     submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    // A free suggestion for the round as a whole ("we need more navy"). Private until the
+    // round closes, like the picks.
+    suggestion: text("suggestion"),
   },
-  (t) => [unique("round_member_once").on(t.roundId, t.memberId)],
+  (t) => [
+    unique("round_member_once").on(t.roundId, t.memberId),
+    check("round_member_suggestion_length", sql`char_length(${t.suggestion}) <= 500`),
+  ],
 );
 
 export const memberPick = pgTable(
@@ -136,6 +151,9 @@ export const memberPick = pgTable(
       .notNull()
       .references(() => design.id),
     rank: integer("rank").notNull(),
+    // Only on a ticked design: the note lives on the pick, so it goes when the pick goes.
+    note: text("note"),
+    noteKind: pickNoteKind("note_kind"),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -144,6 +162,8 @@ export const memberPick = pgTable(
     // The upper bound is the round's picks_per_member, which a CHECK cannot see;
     // validatePicks() enforces it in the server action.
     check("member_pick_rank_positive", sql`${t.rank} >= 1`),
+    check("member_pick_note_length", sql`char_length(${t.note}) <= 280`),
+    check("member_pick_note_kind", sql`(${t.note} IS NULL) = (${t.noteKind} IS NULL)`),
   ],
 );
 

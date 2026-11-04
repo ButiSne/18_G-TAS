@@ -20,7 +20,22 @@ export type RoundErrorCode =
   | "already_submitted"
   | "invalid_picks"
   | "unknown_design"
+  | "not_picked"
+  | "too_long"
   | "bad_settings";
+
+export type NoteKind = "comment" | "suggestion";
+export type PickNote = { note: string; kind: NoteKind };
+export const NOTE_MAX = 280;
+export const SUGGESTION_MAX = 500;
+
+/** Trims; empty means "no note". Throws when too long (the database checks it too). */
+function cleanText(text: string, max: number): string | null {
+  const t = text.replace(/\r\n/g, "\n").trim();
+  if (!t) return null;
+  if ([...t].length > max) throw new RoundError("too_long");
+  return t;
+}
 
 // Explicit fields, not parameter properties: plain Node (scripts) strips types only.
 export class RoundError extends Error {
@@ -57,18 +72,28 @@ export async function roundProgress(db: Db, roundId: string) {
 
 export async function myRoundState(db: Db, roundId: string, memberId: string) {
   const [membership] = await db
-    .select({ submittedAt: roundMember.submittedAt })
+    .select({ submittedAt: roundMember.submittedAt, suggestion: roundMember.suggestion })
     .from(roundMember)
     .where(and(eq(roundMember.roundId, roundId), eq(roundMember.memberId, memberId)));
   const picks = await db
-    .select({ designId: memberPick.designId, rank: memberPick.rank })
+    .select({
+      designId: memberPick.designId,
+      rank: memberPick.rank,
+      note: memberPick.note,
+      noteKind: memberPick.noteKind,
+    })
     .from(memberPick)
     .where(and(eq(memberPick.roundId, roundId), eq(memberPick.memberId, memberId)))
     .orderBy(asc(memberPick.rank));
+  const notes: Record<string, PickNote> = {};
+  for (const p of picks)
+    if (p.note && p.noteKind) notes[p.designId] = { note: p.note, kind: p.noteKind };
   return {
     inRound: Boolean(membership),
     submittedAt: membership?.submittedAt ?? null,
     designIds: picks.map((p) => p.designId),
+    notes,
+    suggestion: membership?.suggestion ?? null,
   };
 }
 
@@ -205,7 +230,10 @@ async function lockMembership(
   return membership;
 }
 
-/** Saves a draft: the ordered design ids are ranks 1…k (k ≤ picks per member). */
+/**
+ * Saves a draft: the ordered design ids are ranks 1…k (k ≤ picks per member). Notes stay
+ * with their design through a reorder; removing a design removes its note.
+ */
 export async function savePicks(
   db: Db,
   opts: { roundId: string; memberId: string; designIds: string[]; now: Date },
@@ -223,9 +251,20 @@ export async function savePicks(
         .where(and(inArray(design.id, opts.designIds), eq(design.hidden, false)));
       if (found.length !== picks.length) throw new RoundError("unknown_design");
     }
-    await tx
-      .delete(memberPick)
-      .where(and(eq(memberPick.roundId, round.id), eq(memberPick.memberId, opts.memberId)));
+    const mine = and(eq(memberPick.roundId, round.id), eq(memberPick.memberId, opts.memberId));
+    const kept = new Map(
+      (
+        await tx
+          .select({
+            designId: memberPick.designId,
+            note: memberPick.note,
+            noteKind: memberPick.noteKind,
+          })
+          .from(memberPick)
+          .where(mine)
+      ).map((p) => [p.designId, p]),
+    );
+    await tx.delete(memberPick).where(mine);
     if (picks.length) {
       await tx.insert(memberPick).values(
         picks.map((p) => ({
@@ -233,10 +272,62 @@ export async function savePicks(
           memberId: opts.memberId,
           designId: p.designId,
           rank: p.rank,
+          note: kept.get(p.designId)?.note ?? null,
+          noteKind: kept.get(p.designId)?.noteKind ?? null,
           updatedAt: opts.now,
         })),
       );
     }
+  });
+}
+
+/**
+ * A comment or suggestion on one of the member's own picks (CLAUDE.md: notes only where
+ * they ticked). An empty note deletes it. Editable until the member submits.
+ */
+export async function savePickNote(
+  db: Db,
+  opts: {
+    roundId: string;
+    memberId: string;
+    designId: string;
+    note: string;
+    kind: NoteKind;
+    now: Date;
+  },
+) {
+  const note = cleanText(opts.note, NOTE_MAX);
+  await db.transaction(async (tx) => {
+    const round = await lockOpenRound(tx, opts.roundId);
+    await lockMembership(tx, round.id, opts.memberId);
+    const updated = await tx
+      .update(memberPick)
+      .set({ note, noteKind: note ? opts.kind : null, updatedAt: opts.now })
+      .where(
+        and(
+          eq(memberPick.roundId, round.id),
+          eq(memberPick.memberId, opts.memberId),
+          eq(memberPick.designId, opts.designId),
+        ),
+      )
+      .returning({ id: memberPick.id });
+    if (updated.length === 0) throw new RoundError("not_picked");
+  });
+}
+
+/** One free suggestion per member per round, not tied to a design. Empty clears it. */
+export async function saveSuggestion(
+  db: Db,
+  opts: { roundId: string; memberId: string; text: string },
+) {
+  const suggestion = cleanText(opts.text, SUGGESTION_MAX);
+  await db.transaction(async (tx) => {
+    const round = await lockOpenRound(tx, opts.roundId);
+    await lockMembership(tx, round.id, opts.memberId);
+    await tx
+      .update(roundMember)
+      .set({ suggestion })
+      .where(and(eq(roundMember.roundId, round.id), eq(roundMember.memberId, opts.memberId)));
   });
 }
 
@@ -283,8 +374,14 @@ export async function submitPicks(
 
 export type RoundResults = {
   standings: Standing[];
-  /** Who picked what, in rank order. Present only after the round closes. */
-  byMember: { memberId: string; name: string; designIds: string[] }[];
+  /** Who picked what, in rank order, with their notes. Present only after the round closes. */
+  byMember: {
+    memberId: string;
+    name: string;
+    designIds: string[];
+    notes: Record<string, PickNote>;
+    suggestion: string | null;
+  }[];
 };
 
 /**
@@ -301,6 +398,9 @@ export async function roundResults(db: Db, roundId: string): Promise<RoundResult
       name: member.name,
       designId: memberPick.designId,
       rank: memberPick.rank,
+      note: memberPick.note,
+      noteKind: memberPick.noteKind,
+      suggestion: roundMember.suggestion,
     })
     .from(memberPick)
     .innerJoin(member, eq(member.id, memberPick.memberId))
@@ -314,10 +414,22 @@ export async function roundResults(db: Db, roundId: string): Promise<RoundResult
     .where(and(eq(memberPick.roundId, roundId), isNotNull(roundMember.submittedAt)))
     .orderBy(asc(member.name), asc(memberPick.rank));
 
-  const grouped = new Map<string, { name: string; picks: { designId: string; rank: number }[] }>();
+  type Group = {
+    name: string;
+    suggestion: string | null;
+    picks: { designId: string; rank: number }[];
+    notes: Record<string, PickNote>;
+  };
+  const grouped = new Map<string, Group>();
   for (const r of rows) {
-    const g = grouped.get(r.memberId) ?? { name: r.name, picks: [] };
+    const g = grouped.get(r.memberId) ?? {
+      name: r.name,
+      suggestion: r.suggestion,
+      picks: [],
+      notes: {},
+    };
     g.picks.push({ designId: r.designId, rank: r.rank });
+    if (r.note && r.noteKind) g.notes[r.designId] = { note: r.note, kind: r.noteKind };
     grouped.set(r.memberId, g);
   }
   const all: MemberPicks[] = [...grouped].map(([memberId, g]) => ({ memberId, picks: g.picks }));
@@ -327,6 +439,8 @@ export async function roundResults(db: Db, roundId: string): Promise<RoundResult
       memberId,
       name: g.name,
       designIds: g.picks.map((p) => p.designId),
+      notes: g.notes,
+      suggestion: g.suggestion,
     })),
   };
 }
