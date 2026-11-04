@@ -289,8 +289,8 @@ Work in this order. Open one pull request per step, keep it green, and update th
 - [x] **3. Ingest:** `scripts/ingest.ts` (section 4) with `ingest-report.md`, family grouping, WebP and Blob upload, and the brand-name content check.
 - [x] **4. Catalogue:** `/designs` and `/designs/[slug]` with filters, colourway switcher and zoom.
 - [x] **5. Member auth:** invite-only sign-in (WhatsApp invite links, §0.9); `proxy.ts` protecting `/members/*`, `/admin/*` and `/designs/*`, plus a session check in every page and action.
-- [ ] **6. Picks:** pick tray, ranking, submit and lock; database constraints; unit tests for exactly-six and unique-rank rules.
-- [ ] **7. Scoring:** Borda count, tie-breaks 1–3, results page; unit tests covering ties.
+- [x] **6. Picks:** pick tray, ranking, submit and lock; database constraints; unit tests for exactly-six and unique-rank rules.
+- [x] **7. Scoring:** Borda count, tie-breaks 1–3, results page; unit tests covering ties.
 - [ ] **8. Admin:** rounds, shortlist confirmation, unlock, exports, audit log.
 - [ ] **9. Public vote:** favourite mode, Turnstile, rate limiting, device cookie and hash, optional demographics, thanks page.
 - [ ] **10. Head-to-head:** matchup flow, Elo or Bradley-Terry ranking with unit tests.
