@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { buttonGhost, buttonPrimary } from "@/src/components/team-ui";
 import { getMessages } from "@/src/lib/messages";
+import { SHARE_VERSION } from "@/src/lib/site";
 import { normaliseRef } from "@/src/lib/tally";
 
 const t = getMessages();
@@ -18,7 +19,8 @@ export function ChannelLinks() {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, ""),
   );
-  const link = slug ? `${window.location.origin}/vote?ref=${slug}` : "";
+  // &s= is the share-card version, so WhatsApp shows the current card (see SHARE_VERSION).
+  const link = slug ? `${window.location.origin}/vote?ref=${slug}&s=${SHARE_VERSION}` : "";
 
   return (
     <div className="mt-3">
