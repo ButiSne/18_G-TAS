@@ -5,6 +5,19 @@ export const LEGAL_NAME = "18 G-TAS Custom Clothing & Design";
 export const TRADING_NAME = "18 G-TAS";
 export const LEGAL_NAME_FULL = `${LEGAL_NAME}, trading as ${TRADING_NAME}`;
 
+/**
+ * The link-preview card for WhatsApp, Facebook and X, written by `pnpm brand-assets`.
+ * A plain path with no query string, as a baseline JPEG: some WhatsApp versions are
+ * fussy about both. WhatsApp caches previews per URL, so after changing the card,
+ * bump the version here and run `pnpm brand-assets` again to force a fresh preview.
+ */
+export const SHARE_IMAGE = {
+  path: "/og/18gtas-share-v2.jpg",
+  width: 1200,
+  height: 630,
+  alt: "18 G-TAS is back: the 18 G-TAS triangle logo in gold, Est. 2008, back 2026. Help choose the first drop.",
+} as const;
+
 /** POPIA information officer (section 55), named on the privacy page. */
 export const INFORMATION_OFFICER = "Snethemba Hlongwane";
 
