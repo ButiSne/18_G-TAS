@@ -3,6 +3,7 @@ import { buttonPrimary, TeamHeader } from "@/src/components/team-ui";
 import { getDb } from "@/src/db/server";
 import { peekInvite } from "@/src/lib/auth/store";
 import { looksLikeToken } from "@/src/lib/auth/tokens";
+import { formatSATime } from "@/src/lib/format";
 import { fill, getMessages } from "@/src/lib/messages";
 import { whatsappChatUrl } from "@/src/lib/site";
 import { redeemAction } from "./actions";
@@ -22,15 +23,25 @@ export default async function Join({
   const { token } = await params;
   const slow = (await searchParams).slow === "1";
   const db = getDb();
-  const invite =
+  const invite: Awaited<ReturnType<typeof peekInvite>> =
     db && looksLikeToken(token) ? await peekInvite(db, token, new Date()) : { state: "unknown" };
 
   if (invite.state !== "valid") {
+    // Say exactly what went wrong, so nobody mistakes a used link for an expired one.
+    const [title, body] =
+      invite.state === "used"
+        ? [t.auth.joinUsedTitle, t.auth.joinUsedBody]
+        : invite.state === "expired"
+          ? [
+              t.auth.joinExpiredTitle,
+              fill(t.auth.joinExpiredBody, { time: formatSATime(invite.expiresAt!) }),
+            ]
+          : [t.auth.joinUnknownTitle, t.auth.joinUnknownBody];
     return (
       <>
         <TeamHeader />
-        <h1 className="font-luxe mt-10 text-4xl">{t.auth.joinInvalidTitle}</h1>
-        <p className="mt-4 text-[var(--muted)]">{t.auth.joinInvalidBody}</p>
+        <h1 className="font-luxe mt-10 text-4xl">{title}</h1>
+        <p className="mt-4 text-[var(--muted)]">{body}</p>
         <a
           href={whatsappChatUrl()}
           target="_blank"
@@ -53,6 +64,11 @@ export default async function Join({
         {fill(t.auth.joinHello, { name: "name" in invite ? (invite.name ?? "") : "" })}
       </h1>
       <p className="mt-4 text-[var(--muted)]">{t.auth.joinBody}</p>
+      {invite.expiresAt && (
+        <p className="mt-2 font-mono text-xs text-[var(--muted)]">
+          {fill(t.auth.joinValidUntil, { time: formatSATime(invite.expiresAt) })}
+        </p>
+      )}
       {slow && (
         <p role="alert" className="text-coral mt-4 text-sm">
           {t.auth.slow}

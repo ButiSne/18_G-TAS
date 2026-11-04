@@ -11,6 +11,7 @@ import { writeFile } from "node:fs/promises";
 import { createDb } from "../src/db/client.ts";
 import { member } from "../src/db/schema.ts";
 import { createInvite } from "../src/lib/auth/store.ts";
+import { formatSATime } from "../src/lib/format.ts";
 import { SITE_URL } from "../src/lib/site.ts";
 
 const query = process.argv[2]?.trim().toLowerCase();
@@ -40,6 +41,6 @@ const { token, expiresAt } = await createInvite(db, {
 const base = (process.env.INVITE_BASE_URL || SITE_URL).replace(/\/+$/, "");
 await writeFile("invite-link.txt", `${base}/members/join/${token}\n`);
 console.log(
-  `Sign-in link for ${person.name} written to invite-link.txt (expires ${expiresAt.toISOString()}). Send it, then delete the file.`,
+  `Sign-in link for ${person.name} written to invite-link.txt (works until ${formatSATime(expiresAt)}, SA time). Send it, then delete the file.`,
 );
 process.exit(0);

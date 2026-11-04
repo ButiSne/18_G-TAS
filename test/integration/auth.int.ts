@@ -49,8 +49,8 @@ describe("WhatsApp invite sign-in", () => {
   it("lets a link be looked at without using it up, then used exactly once", async () => {
     const { token } = await createInvite(db, { memberId: lungaId, createdBy: adminId, now });
     // A link preview (or the person opening the page) only peeks.
-    expect(await peekInvite(db, token, now)).toEqual({ state: "valid", name: "Lunga M" });
-    expect(await peekInvite(db, token, now)).toEqual({ state: "valid", name: "Lunga M" });
+    expect(await peekInvite(db, token, now)).toMatchObject({ state: "valid", name: "Lunga M" });
+    expect(await peekInvite(db, token, now)).toMatchObject({ state: "valid", name: "Lunga M" });
 
     const first = await redeemInvite(db, token, now);
     expect(first?.member).toMatchObject({ id: lungaId, name: "Lunga M", role: "member" });
