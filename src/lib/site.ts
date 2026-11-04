@@ -9,10 +9,13 @@ export const LEGAL_NAME_FULL = `${LEGAL_NAME}, trading as ${TRADING_NAME}`;
  * The link-preview card for WhatsApp, Facebook and X, written by `pnpm brand-assets`.
  * A plain path with no query string, as a baseline JPEG: some WhatsApp versions are
  * fussy about both. WhatsApp caches previews per URL, so after changing the card,
- * bump the version here and run `pnpm brand-assets` again to force a fresh preview.
+ * bump SHARE_VERSION and run `pnpm brand-assets` again: the image and every shared link
+ * get a new address, so WhatsApp fetches a fresh preview instead of showing the old card.
  */
+export const SHARE_VERSION = 3;
+
 export const SHARE_IMAGE = {
-  path: "/og/18gtas-share-v2.jpg",
+  path: `/og/18gtas-share-v${SHARE_VERSION}.jpg`,
   width: 1200,
   height: 630,
   alt: "18 G-TAS is back: the 18 G-TAS triangle logo in gold, Est. 2008, back 2026. Help choose the first drop.",
@@ -39,9 +42,16 @@ export function whatsappChatUrl(number = CONTACT_WHATSAPP): string {
  * A WhatsApp share link. The shared URL carries ?ref= so the results can show which
  * channel brought votes (CLAUDE.md §0.1). wa.me works in the app and on the web.
  */
-export function whatsappShareUrl(text: string, ref = "wa-share"): string {
-  const link = `${SITE_URL}/?ref=${encodeURIComponent(ref)}`;
-  return `https://wa.me/?text=${encodeURIComponent(`${text} ${link}`)}`;
+export function whatsappShareUrl(text: string, ref = "wa-share", path = "/"): string {
+  return `https://wa.me/?text=${encodeURIComponent(`${text} ${shareLink(path, ref)}`)}`;
+}
+
+/**
+ * The address people pass on: ?ref= for the channel, and ?s= for the share-card version,
+ * so a new card means a new address and WhatsApp drops its cached preview.
+ */
+export function shareLink(path: string, ref: string): string {
+  return `${SITE_URL}${path}?ref=${encodeURIComponent(ref)}&s=${SHARE_VERSION}`;
 }
 
 /**

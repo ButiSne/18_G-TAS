@@ -106,25 +106,108 @@ console.log("Icons: app/favicon.ico, app/icon.png, app/apple-icon.png");
 
 // --- Share card, rendered with the brand fonts -----------------------------------
 // The red-and-blue original would clash with the onyx-and-gold card (owner's call), so
-// the card uses a gold edition of it: the red fill becomes brand gold, and the blue
-// outline and lettering are cut out, so "18" and "G-TAS" show the dark card through.
+// the card uses a gold edition of it: a gold triangle with the original "18" and "G-TAS"
+// lettering cut out, so the dark card shows through.
 // The tab icons above keep the original colours.
+
+type Line = { a: number; b: number }; // x = a + b·y
+
+/** Least-squares fit of x = a + b·y. */
+function fitLine(points: [number, number][]): Line {
+  const n = points.length;
+  const my = points.reduce((s, [, y]) => s + y, 0) / n;
+  const mx = points.reduce((s, [x]) => s + x, 0) / n;
+  let num = 0;
+  let den = 0;
+  for (const [x, y] of points) {
+    num += (y - my) * (x - mx);
+    den += (y - my) ** 2;
+  }
+  const b = num / den;
+  return { a: mx - b * my, b };
+}
+
+/**
+ * The photo of the original logo crops the triangle's two bottom corners: the sides run off
+ * the edge of the image. So the triangle is redrawn as a vector, with its sides fitted to
+ * the photo's own edges and carried on to two full points on the base line. Only the
+ * lettering comes from the photo.
+ */
 async function goldEdition(input: Buffer): Promise<Buffer> {
   const { data, info } = await sharp(input)
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
-  for (let i = 0; i < data.length; i += 4) {
+  const { width: W, height: H } = info;
+  // The logo's red and blue, not the faint grey a JPEG leaves around them.
+  const ink = (x: number, y: number) => {
+    const i = (y * W + x) * 4;
     const [r, g, b] = [data[i]!, data[i + 1]!, data[i + 2]!];
-    // How red a pixel is (vs the blue lettering and outline), with a soft edge.
-    const redness = (r - Math.max(g, b)) / 255;
-    const keep = Math.max(0, Math.min(1, (redness - 0.15) / 0.35));
-    data[i] = 201; // #C9A24A, brand gold
-    data[i + 1] = 162;
-    data[i + 2] = 74;
-    data[i + 3] = Math.round(data[i + 3]! * keep);
+    return data[i + 3]! > 128 && Math.max(r, g, b) - Math.min(r, g, b) > 80;
+  };
+
+  // Edge points from rows where both sides are clear of the image border.
+  const left: [number, number][] = [];
+  const right: [number, number][] = [];
+  let baseY = 0;
+  const firstInk = (y: number, from: number, step: 1 | -1) => {
+    for (let x = from; x >= 0 && x < W; x += step) if (ink(x, y)) return x;
+    return -1;
+  };
+  for (let y = 0; y < H; y++) {
+    const l = firstInk(y, 0, 1);
+    const r = firstInk(y, W - 1, -1);
+    if (l < 0) continue;
+    baseY = y;
+    if (l > 2 && r < W - 3 && r - l > W * 0.1) {
+      left.push([l, y]);
+      right.push([r + 1, y]);
+    }
   }
-  return sharp(data, { raw: info }).trim().png().toBuffer();
+  const L = fitLine(left);
+  const R = fitLine(right);
+  const apexY = (R.a - L.a) / (L.b - R.b);
+  const apexX = L.a + L.b * apexY;
+  const base = baseY + 1;
+  const cornerL = L.a + L.b * base;
+  const cornerR = R.a + R.b * base;
+  const pad = Math.ceil(Math.max(0, -cornerL, cornerR - W)) + 2;
+  console.log(
+    `Triangle: apex (${apexX.toFixed(0)}, ${apexY.toFixed(0)}), corners ${cornerL.toFixed(0)} and ${cornerR.toFixed(0)} on y=${base} (photo is ${W} wide)`,
+  );
+
+  const W2 = W + 2 * pad;
+  const triangle = await sharp(
+    Buffer.from(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${W2}" height="${H}">` +
+        `<polygon fill="#C9A24A" points="${apexX + pad},${apexY} ${cornerL + pad},${base} ${cornerR + pad},${base}"/></svg>`,
+    ),
+  )
+    .ensureAlpha()
+    .raw()
+    .toBuffer();
+
+  // Cut the lettering out: blue pixels well inside the triangle (the blue outline along
+  // the edges is not lettering, and the vector edge replaces it).
+  const inset = W * 0.035; // the outline is ~12 px thick; the lettering sits 30 px or more inside
+  const distance = (line: Line, x: number, y: number) =>
+    Math.abs(x - (line.a + line.b * y)) / Math.sqrt(1 + line.b ** 2);
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * 4;
+      if (data[i + 3]! < 8) continue;
+      if (Math.min(distance(L, x, y), distance(R, x, y), base - y) < inset) continue;
+      const [r, g, b] = [data[i]!, data[i + 1]!, data[i + 2]!];
+      const redness = (r - Math.max(g, b)) / 255;
+      const keep = Math.max(0, Math.min(1, (redness - 0.15) / 0.35));
+      const j = (y * W2 + x + pad) * 4;
+      triangle[j + 3] = Math.round(triangle[j + 3]! * keep);
+    }
+  }
+  return sharp(triangle, { raw: { width: W2, height: H, channels: 4 } })
+    .trim()
+    .png()
+    .toBuffer();
 }
 
 const goldLogo = await goldEdition(logo);
@@ -135,7 +218,7 @@ const html = `<!doctype html><html><head><meta charset="utf-8">
   html,body{margin:0;width:1200px;height:630px;overflow:hidden}
   body{position:relative;background:radial-gradient(ellipse at 85% 0%,rgba(201,162,74,.26),transparent 60%),#0D0D0D;
        color:#F3EDE2;font-family:'Space Mono',monospace}
-  .logo{position:absolute;right:70px;top:50%;transform:translateY(-50%);height:420px}
+  .logo{position:absolute;right:62px;top:50%;transform:translateY(-50%);height:396px}
   .text{position:absolute;left:72px;top:0;bottom:0;width:560px;display:flex;flex-direction:column;justify-content:center}
   .eyebrow{font-size:20px;letter-spacing:.3em;color:#C9A24A;text-transform:uppercase}
   .brand{font-family:Cinzel;font-weight:700;font-size:44px;letter-spacing:.3em;margin-top:16px}

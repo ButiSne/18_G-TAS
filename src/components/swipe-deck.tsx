@@ -14,7 +14,7 @@ import {
 } from "@/app/vote/actions";
 import { lineBadge } from "@/src/lib/design-line";
 import { fill, getMessages } from "@/src/lib/messages";
-import { SITE_URL } from "@/src/lib/site";
+import { whatsappShareUrl } from "@/src/lib/site";
 import type { PublicEntryCard } from "@/src/lib/stages";
 import { styleFor } from "@/src/lib/style";
 import { AGE_BRACKETS, PROVINCES } from "@/src/lib/demographics";
@@ -464,8 +464,11 @@ function Done({
 }) {
   const style = styleFor(liked);
   const name = v.styles[style];
-  const link = `${SITE_URL}/vote?ref=${refCode ?? "wa-share"}`;
-  const share = `https://wa.me/?text=${encodeURIComponent(`${fill(v.shareText, { style: name })} ${link}`)}`;
+  const share = whatsappShareUrl(
+    fill(v.shareText, { style: name }),
+    refCode ?? "wa-share",
+    "/vote",
+  );
   const [saved, setSaved] = useState(false);
   const [pending, start] = useTransition();
   const field = "mt-1 block min-h-12 w-full rounded-xl border border-white/20 bg-transparent px-3";
