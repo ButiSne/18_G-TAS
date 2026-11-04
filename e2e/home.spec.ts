@@ -56,25 +56,33 @@ test("the line tiles open their collection pages", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1, name: "XVIII · G-TAS" })).toBeVisible();
 });
 
-test("link previews and the browser tab use the 18 G-TAS logo", async ({ page, request }) => {
-  await page.goto("/");
-  const og = await page.locator('meta[property="og:image"]').first().getAttribute("content");
-  expect(og).toMatch(/\/opengraph-image\.jpg/);
-  await expect(page.locator('meta[property="og:image:width"]').first()).toHaveAttribute(
-    "content",
-    "1200",
-  );
-  await expect(page.locator('meta[name="twitter:image"]').first()).toHaveAttribute(
-    "content",
-    /\/twitter-image\.jpg/,
-  );
+test("link previews use the share card at a plain address, on every page", async ({
+  page,
+  request,
+}) => {
+  for (const path of ["/", "/vote?ref=wa-test", "/collection/eiteen", "/privacy"]) {
+    await page.goto(path);
+    const og = await page.locator('meta[property="og:image"]').first().getAttribute("content");
+    // A plain, versioned path with no query string: some WhatsApp versions are fussy.
+    expect(og, path).toMatch(/^https?:\/\/[^?]+\/og\/18gtas-share-v\d+\.jpg$/);
+    await expect(page.locator('meta[property="og:title"]').first()).toHaveAttribute(
+      "content",
+      /18 G-TAS/,
+    );
+    await expect(page.locator('meta[name="twitter:card"]').first()).toHaveAttribute(
+      "content",
+      "summary_large_image",
+    );
+  }
   await expect(page.locator('link[rel="icon"][href*="icon.png"]').first()).toBeAttached();
-  await expect(page.locator('link[rel="apple-touch-icon"]').first()).toBeAttached();
 
+  const og = await page.locator('meta[property="og:image"]').first().getAttribute("content");
   const card = await request.get(new URL(og!).pathname);
   expect(card.status()).toBe(200);
   expect(card.headers()["content-type"]).toContain("image/jpeg");
-  expect((await card.body()).length).toBeLessThan(300 * 1024); // WhatsApp skips heavier images
-  const ico = await request.get("/favicon.ico");
-  expect(ico.status()).toBe(200);
+  const bytes = await card.body();
+  expect(bytes.length).toBeLessThan(300 * 1024); // WhatsApp skips heavier images
+  // Baseline JPEG: no progressive (SOF2) frame marker.
+  expect(bytes.includes(Buffer.from([0xff, 0xc2]))).toBe(false);
+  expect((await request.get("/favicon.ico")).status()).toBe(200);
 });

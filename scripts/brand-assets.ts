@@ -6,14 +6,17 @@
 //   app/favicon.ico          16, 32 and 48 px, for browsers that ask for /favicon.ico
 //   app/icon.png             512 px browser-tab icon
 //   app/apple-icon.png       180 px home-screen icon (onyx background: iOS has no transparency)
-//   app/opengraph-image.jpg  1200×630 share card for WhatsApp, Facebook and X (< 300 KB)
-//   app/twitter-image.jpg    the same card for X
+//   public/og/18gtas-share-vN.jpg  1200×630 link-preview card (path set by SHARE_IMAGE in
+//                                  src/lib/site.ts; wired up in app/layout.tsx metadata)
 // The share card is rendered in the brand fonts with a headless browser.
 
 import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { chromium } from "@playwright/test";
 import sharp from "sharp";
+import { mkdir } from "node:fs/promises";
+import { dirname } from "node:path";
+import { SHARE_IMAGE } from "../src/lib/site.ts";
 
 const ONYX = { r: 13, g: 13, b: 13, alpha: 1 };
 const source = ["brand/logo.svg", "brand/logo.png", "brand/logo.jpeg", "brand/logo.jpg"].find((f) =>
@@ -158,12 +161,14 @@ await page.evaluate(() => document.fonts.ready);
 const png = await page.screenshot({ type: "png" });
 await browser.close();
 
-const card = await sharp(png).jpeg({ quality: 86, mozjpeg: true }).toBuffer();
-await writeFile("app/opengraph-image.jpg", card);
-await writeFile("app/twitter-image.jpg", card);
-const alt =
-  "18 G-TAS is back: the 18 G-TAS triangle logo in gold, Est. 2008, back 2026. Help choose the first drop.";
-await writeFile("app/opengraph-image.alt.txt", alt);
-await writeFile("app/twitter-image.alt.txt", alt);
-console.log(`Share card: app/opengraph-image.jpg (${Math.round(card.length / 1024)} KB, 1200×630)`);
+// Baseline (not progressive) JPEG at a plain, versioned path: see SHARE_IMAGE in site.ts.
+const card = await sharp(png)
+  .jpeg({ quality: 86, progressive: false, chromaSubsampling: "4:2:0" })
+  .toBuffer();
+const target = `public${SHARE_IMAGE.path}`;
+await mkdir(dirname(target), { recursive: true });
+await writeFile(target, card);
+console.log(
+  `Share card: ${target} (${Math.round(card.length / 1024)} KB, 1200×630, baseline JPEG)`,
+);
 process.exit(0);
