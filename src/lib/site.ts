@@ -33,6 +33,15 @@ export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://18g-tas.ve
 export const CONTACT_WHATSAPP = process.env.NEXT_PUBLIC_CONTACT_WHATSAPP || "+27 74 673 0051";
 export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || null;
 
+/**
+ * The 18 G-TAS WhatsApp group: "Contact us" in the footer opens it. A group is public to its
+ * members, so private matters (privacy requests, team sign-in help) use the direct line
+ * above instead. Kept exactly as WhatsApp issued it.
+ */
+export const WHATSAPP_GROUP_URL =
+  process.env.NEXT_PUBLIC_WHATSAPP_GROUP_URL ||
+  "https://chat.whatsapp.com/EqzlCXawVetEgIpqxjFG6c?s=cl&p=a&mlu=4&ilr=4&iam=2";
+
 /** wa.me wants the number in international format with digits only: +27 74… → 2774… */
 export function whatsappChatUrl(number = CONTACT_WHATSAPP): string {
   return `https://wa.me/${number.replace(/\D/g, "")}`;
@@ -57,7 +66,7 @@ export function shareLink(path: string, ref: string): string {
 /**
  * Footer links, in display order. Competition rules are deliberately absent: there is no
  * prize draw, and /rules is linked only if the admin turns the competition flag on.
- * "Contact us" opens a WhatsApp chat with the brand.
+ * "Contact us" opens the brand's WhatsApp group.
  */
 export const LEGAL_LINKS = [
   { key: "terms", href: "/terms" },
@@ -65,5 +74,5 @@ export const LEGAL_LINKS = [
   { key: "data", href: "/privacy#data" },
   { key: "cookies", href: "/privacy#cookies" },
   { key: "copyright", href: "/copyright" },
-  { key: "contact", href: whatsappChatUrl() },
+  { key: "contact", href: WHATSAPP_GROUP_URL },
 ] as const;

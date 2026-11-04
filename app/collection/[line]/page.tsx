@@ -17,7 +17,9 @@ const LINES: Record<string, { line: Line; copy: typeof c.eiteen; other: string }
   "g-tas": { line: "G-TAS", copy: c.gtas, other: "eiteen" },
 };
 
-export const revalidate = 3600;
+// Same freshness as the landing page, so a tile's count and this page always agree.
+export const revalidate = 300;
+const TEASER_TILES = 24;
 export const dynamicParams = false;
 export const generateStaticParams = () => Object.keys(LINES).map((line) => ({ line }));
 
@@ -33,10 +35,14 @@ export default async function Collection({ params }: Props) {
   if (!entry) notFound();
   const { line, copy, other } = entry;
   const eiteen = line === "EITEEN";
-  const show = await getShowcase(40);
+  // Every teaser: the grid shows some and counts the rest, so it adds up to the tile's number.
+  const show = await getShowcase(1000);
   const revealed = show.shortlist.length > 0;
   const cards = shortlistFor(show, line);
   const teasers = show.teasers.filter((x) => x.line === line);
+  const lineTotal = show.byLine[line];
+  const shownTeasers = teasers.slice(0, lineTotal > TEASER_TILES ? TEASER_TILES - 1 : TEASER_TILES);
+  const moreCount = lineTotal - shownTeasers.length;
   const accent = eiteen ? "text-lime" : "text-gold";
 
   return (
@@ -80,24 +86,26 @@ export default async function Collection({ params }: Props) {
                     key={card.designId}
                     className="overflow-hidden rounded-2xl ring-1 ring-white/10"
                   >
-                    <span className="relative block aspect-[1200/1380] bg-[#ececec]">
-                      <Image
-                        src={card.thumbUrl}
-                        alt={`${card.title}, ${card.colourwayName}`}
-                        fill
-                        sizes="(min-width: 768px) 25vw, 50vw"
-                        priority={i < 4}
-                        placeholder={card.blurDataUrl ? "blur" : "empty"}
-                        blurDataURL={card.blurDataUrl ?? undefined}
-                        className="object-cover"
-                      />
-                    </span>
-                    <span className="block p-3">
-                      <span className="block text-sm leading-tight font-bold">{card.title}</span>
-                      <span className="block truncate text-xs text-[var(--muted)]">
-                        {card.colourwayName}
+                    <MaybeVoteLink open={show.voting === "open"}>
+                      <span className="relative block aspect-[1200/1380] bg-[#ececec]">
+                        <Image
+                          src={card.thumbUrl}
+                          alt={`${card.title}, ${card.colourwayName}`}
+                          fill
+                          sizes="(min-width: 768px) 25vw, 50vw"
+                          priority={i < 4}
+                          placeholder={card.blurDataUrl ? "blur" : "empty"}
+                          blurDataURL={card.blurDataUrl ?? undefined}
+                          className="object-cover"
+                        />
                       </span>
-                    </span>
+                      <span className="block p-3">
+                        <span className="block text-sm leading-tight font-bold">{card.title}</span>
+                        <span className="block truncate text-xs text-[var(--muted)]">
+                          {card.colourwayName}
+                        </span>
+                      </span>
+                    </MaybeVoteLink>
                   </li>
                 ))}
               </ul>
@@ -122,13 +130,14 @@ export default async function Collection({ params }: Props) {
         ) : (
           <>
             <p className={`mt-6 font-mono text-sm font-bold ${accent}`}>
-              {fill(c.teaserTitle, { count: show.byLine[line] })}
+              {fill(c.teaserTitle, { count: lineTotal })}
             </p>
             <p className="mt-2 max-w-xl text-[var(--muted)]">{c.teaserBody}</p>
-            <ul aria-hidden className="mt-6 grid grid-cols-3 gap-2 md:grid-cols-6">
-              {teasers.slice(0, 12).map((x) => (
+            <ul className="mt-6 grid grid-cols-3 gap-2 md:grid-cols-6">
+              {shownTeasers.map((x) => (
                 <li
                   key={x.id}
+                  aria-hidden
                   className="relative aspect-[1200/1380] overflow-hidden rounded-xl ring-1 ring-white/10"
                 >
                   <span
@@ -137,6 +146,14 @@ export default async function Collection({ params }: Props) {
                   />
                 </li>
               ))}
+              {moreCount > 0 && (
+                <li
+                  aria-label={fill(c.moreLabel, { count: moreCount })}
+                  className={`grid aspect-[1200/1380] place-items-center rounded-xl border border-dashed border-white/25 font-mono text-sm font-bold ${accent}`}
+                >
+                  {fill(c.more, { count: moreCount })}
+                </li>
+              )}
             </ul>
           </>
         )}
@@ -149,5 +166,16 @@ export default async function Collection({ params }: Props) {
         </Link>
       </div>
     </section>
+  );
+}
+
+/** While the public vote is open, a shortlisted design is a way in to choose. */
+function MaybeVoteLink({ open, children }: { open: boolean; children: React.ReactNode }) {
+  return open ? (
+    <Link href="/vote" className="block transition active:scale-[0.98]">
+      {children}
+    </Link>
+  ) : (
+    <>{children}</>
   );
 }

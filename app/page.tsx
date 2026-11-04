@@ -12,8 +12,9 @@ import {
 import { whatsappShareUrl } from "@/src/lib/site";
 
 // Data comes from the database. Admin actions that change it (confirming the shortlist,
-// opening or closing the vote) revalidate this page at once; hourly is the backstop.
-export const revalidate = 3600;
+// opening or closing the vote, editing a design) revalidate this page at once. Five minutes
+// is the backstop, so an import shows up quickly too.
+export const revalidate = 300;
 
 const t = getMessages();
 const h = t.home;
@@ -147,7 +148,7 @@ function Peek({ show, share }: { show: Showcase; share: string }) {
         </h2>
       </div>
       {revealed ? (
-        <ShortlistStrip cards={show.shortlist} />
+        <ShortlistStrip cards={show.shortlist} voting={show.voting} />
       ) : (
         show.teasers.length > 0 && <TeaserStrip teasers={show.teasers} />
       )}
@@ -192,8 +193,11 @@ function ChoiceButton({ voting, share }: { voting: Showcase["voting"]; share: st
   );
 }
 
-/** After the team's vote: the real shortlisted designs, drifting in two rows. */
-function ShortlistStrip({ cards }: { cards: ShortlistCard[] }) {
+/**
+ * After the team's vote: the real shortlisted designs, drifting in two rows. While the
+ * public vote is open a tap goes straight in to choose; otherwise to that line's page.
+ */
+function ShortlistStrip({ cards, voting }: { cards: ShortlistCard[]; voting: Showcase["voting"] }) {
   const half = Math.ceil(cards.length / 2);
   const rows = [cards.slice(0, half), cards.slice(half)].filter((r) => r.length);
   return (
@@ -207,7 +211,11 @@ function ShortlistStrip({ cards }: { cards: ShortlistCard[] }) {
           {[...row, ...row].map((card, j) => (
             <Link
               key={`${card.designId}-${j}`}
-              href={`/collection/${card.line === "EITEEN" ? "eiteen" : "g-tas"}`}
+              href={
+                voting === "open"
+                  ? "/vote"
+                  : `/collection/${card.line === "EITEEN" ? "eiteen" : "g-tas"}`
+              }
               // The duplicate half only makes the loop seamless: keep it out of the tab order.
               tabIndex={j >= row.length ? -1 : undefined}
               aria-hidden={j >= row.length ? true : undefined}
@@ -281,10 +289,12 @@ function TeaserStrip({ teasers }: { teasers: Teaser[] }) {
 
 function TwoLines({ show }: { show: Showcase }) {
   const l = h.twoLines;
+  const revealed = show.shortlist.length > 0;
+  // The same number the line's own page shows: all new designs, or the shortlisted ones.
   const count = (n: number) =>
     n > 0 ? (
       <p className="mt-5 inline-block rounded-full px-3 py-1 font-mono text-xs font-bold">
-        {fill(l.count, { count: n })}
+        {fill(revealed ? l.countShortlist : l.count, { count: n })}
       </p>
     ) : null;
   return (
@@ -305,6 +315,7 @@ function TwoLines({ show }: { show: Showcase }) {
           <p className="text-lime font-mono text-xs tracking-[0.25em] uppercase">{l.eiteen.tag}</p>
           <h3 className="font-youth mt-2 text-5xl">{l.eiteen.name}</h3>
           <p className="mt-3 text-[var(--muted)]">{l.eiteen.body}</p>
+          <LinePreview show={show} line="EITEEN" />
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="[&>p]:bg-lime [&>p]:text-onyx">{count(lineCount(show, "EITEEN"))}</div>
             <span className="text-lime mt-5 text-sm font-bold">
@@ -326,6 +337,7 @@ function TwoLines({ show }: { show: Showcase }) {
           <p className="text-gold font-mono text-xs tracking-[0.25em] uppercase">{l.gtas.tag}</p>
           <h3 className="font-numerals text-gold mt-2 text-3xl tracking-[0.15em]">{l.gtas.name}</h3>
           <p className="mt-3 text-[var(--muted)]">{l.gtas.body}</p>
+          <LinePreview show={show} line="G-TAS" />
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="[&>p]:bg-gold [&>p]:text-onyx">{count(lineCount(show, "G-TAS"))}</div>
             <span className="text-gold mt-5 text-sm font-bold">
@@ -338,6 +350,40 @@ function TwoLines({ show }: { show: Showcase }) {
         </Link>
       </div>
     </section>
+  );
+}
+
+/**
+ * A glimpse of the line on its tile: blurred teasers before the shortlist (nothing is
+ * revealed), the real shortlisted designs after it. Decorative: the tile is the link.
+ */
+function LinePreview({ show, line }: { show: Showcase; line: Line }) {
+  const revealed = show.shortlist.length > 0;
+  const cards = revealed ? shortlistFor(show, line).slice(0, 4) : [];
+  const teasers = revealed ? [] : show.teasers.filter((x) => x.line === line).slice(0, 4);
+  if (!cards.length && !teasers.length) return null;
+  return (
+    <div aria-hidden className="mt-5 grid grid-cols-4 gap-2">
+      {cards.map((c) => (
+        <span
+          key={c.designId}
+          className="relative aspect-[1200/1380] overflow-hidden rounded-xl bg-[#ececec]"
+        >
+          <Image src={c.thumbUrl} alt="" fill sizes="80px" className="object-cover" />
+        </span>
+      ))}
+      {teasers.map((x) => (
+        <span
+          key={x.id}
+          className="relative aspect-[1200/1380] overflow-hidden rounded-xl ring-1 ring-white/10"
+        >
+          <span
+            className="absolute -inset-1/4 bg-cover bg-center blur-md saturate-150"
+            style={{ backgroundImage: `url(${x.blur})` }}
+          />
+        </span>
+      ))}
+    </div>
   );
 }
 

@@ -28,10 +28,19 @@ test("the footer links the legal pages, and no competition rules", async ({ page
     "Data we collect",
     "Cookies",
     "Copyright & design rights",
-    "Contact us",
+    "Contact us on WhatsApp",
   ]) {
     await expect(footer.getByRole("link", { name })).toBeVisible();
   }
+  await expect(footer.getByRole("link", { name: "Contact us on WhatsApp" })).toHaveAttribute(
+    "href",
+    /^https:\/\/chat\.whatsapp\.com\//,
+  );
+  // Private matters keep the direct line.
+  await expect(page.getByRole("link", { name: "+27 74 673 0051" })).toHaveAttribute(
+    "href",
+    "https://wa.me/27746730051",
+  );
   await expect(page.getByRole("link", { name: "Competition rules" })).toHaveCount(0);
 
   await footer.getByRole("link", { name: "Data we collect" }).click();
@@ -96,4 +105,21 @@ test("a shared link's channel code is kept for the tab, so the vote can count it
   expect(await page.evaluate(() => sessionStorage.getItem("gtas_ref"))).toBe("wa-test");
   // Not a cookie: the vote keeps its single functional cookie.
   expect((await page.context().cookies()).map((c) => c.name)).not.toContain("gtas_ref");
+});
+
+test("each line tile shows the same count as the page it opens", async ({ page }) => {
+  for (const [tile, path] of [
+    [/For the youth/, "/collection/eiteen"],
+    [/For the elders/, "/collection/g-tas"],
+  ] as const) {
+    await page.goto("/");
+    const link = page.getByRole("link", { name: tile });
+    const n = /(\d+) (?:new designs|on the shortlist)/.exec(await link.innerText())?.[1];
+    expect(n, `count on the ${path} tile`).toBeTruthy();
+    await link.click();
+    await expect(page).toHaveURL(new RegExp(`${path}$`));
+    await expect(
+      page.getByText(new RegExp(`^${n} (?:new designs in this line|on the shortlist)$`)),
+    ).toBeVisible();
+  }
 });

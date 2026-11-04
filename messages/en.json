@@ -45,7 +45,8 @@
         "tag": "For the elders",
         "body": "Gold, Roman numerals and monograms. Quiet luxury that lasts."
       },
-      "see": "See the collection"
+      "see": "See the collection",
+      "countShortlist": "{count} on the shortlist"
     },
     "how": {
       "title": "How the comeback works",
@@ -79,11 +80,12 @@
       "data": "Data we collect",
       "cookies": "Cookies",
       "copyright": "Copyright & design rights",
-      "contact": "Contact us"
+      "contact": "Contact us on WhatsApp"
     },
     "copyright": "© {year} 18 G-TAS Custom Clothing & Design, trading as 18 G-TAS. All rights reserved.",
     "ip": "All designs, artwork, the 18 mark, EITEEN and XVIII · G-TAS belong to 18 G-TAS. Do not copy, print or sell them.",
-    "affiliation": "18 G-TAS is not affiliated with any football club, federation or sportswear brand."
+    "affiliation": "18 G-TAS is not affiliated with any football club, federation or sportswear brand.",
+    "groupNote": "“Contact us” opens the 18 G-TAS WhatsApp group, where other members can see your number. Under 18? Ask a parent or guardian first. For anything private (your data, a privacy request, team sign-in), message us directly on {number}."
   },
   "legal": {
     "home": "18 G-TAS",
@@ -264,7 +266,8 @@
       "designs": "Designs & print methods",
       "shortlist": "Confirm the shortlist",
       "results": "Public results",
-      "final": "Final ten"
+      "final": "Final ten",
+      "quotes": "Print quotes (Masumpa)"
     },
     "designsTitle": "Designs",
     "designsLead": "Set each design’s print method before the final ten. Only designs with a print method can be chosen. Hidden designs leave the catalogue.",
@@ -399,6 +402,8 @@
     "teaserBody": "They stay under wraps until the team has picked its shortlist. Then they appear here, and you vote.",
     "empty": "No designs from this line made the shortlist this time.",
     "other": "See the other line",
-    "back": "Home"
+    "back": "Home",
+    "more": "+{count} more",
+    "moreLabel": "and {count} more designs in this line, still under wraps"
   }
 }
