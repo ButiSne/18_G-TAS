@@ -30,7 +30,8 @@
     "ingest": "node --env-file-if-exists=.env.local --experimental-strip-types scripts/ingest.ts",
     "invite": "node --env-file-if-exists=.env.local --experimental-strip-types scripts/invite.ts",
     "brand-assets": "node --experimental-strip-types scripts/brand-assets.ts",
-    "ingest:pack": "node --env-file-if-exists=.env.local --experimental-strip-types scripts/ingest-pack.ts"
+    "ingest:pack": "node --env-file-if-exists=.env.local --experimental-strip-types scripts/ingest-pack.ts",
+    "blob:cleanup": "node --env-file-if-exists=.env.local --experimental-strip-types scripts/blob-cleanup.ts"
   },
   "dependencies": {
     "@vercel/blob": "2.8.2",

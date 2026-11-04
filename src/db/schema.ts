@@ -72,27 +72,33 @@ export const design = pgTable("design", {
   createdAt: createdAt(),
 });
 
-export const colourway = pgTable("colourway", {
-  id: id(),
-  designId: uuid("design_id")
-    .notNull()
-    .references(() => design.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  imageUrl: text("image_url").notNull(),
-  thumbUrl: text("thumb_url").notNull(),
-  imageHash: text("image_hash").notNull().unique(),
-  // A tiny WebP as a data URL: an instant placeholder while the real image loads on 4G.
-  blurDataUrl: text("blur_data_url"),
-  // Extra views of this colourway (close-up detail shots), shown in the zoom.
-  views: jsonb("views").$type<ColourwayView[]>().notNull().default([]),
-  // Canonical tee colour for the catalogue filter (src/ingest/tee-colour.ts).
-  teeColour: text("tee_colour"),
-  // The exact fabric colour from the design pack ("#0D0D0D"), for true-colour swatches.
-  teeHex: text("tee_hex"),
-  // Paths only. Print masters are never uploaded; the print team finds them in the archive.
-  printFiles: jsonb("print_files").$type<string[]>().notNull().default([]),
-  sortOrder: integer("sort_order").notNull().default(0),
-});
+export const colourway = pgTable(
+  "colourway",
+  {
+    id: id(),
+    designId: uuid("design_id")
+      .notNull()
+      .references(() => design.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    imageUrl: text("image_url").notNull(),
+    thumbUrl: text("thumb_url").notNull(),
+    // Unique per design, not globally: the pack deliberately uses one image in two designs
+    // (the same logo in two collections, offered as alternative choices).
+    imageHash: text("image_hash").notNull(),
+    // A tiny WebP as a data URL: an instant placeholder while the real image loads on 4G.
+    blurDataUrl: text("blur_data_url"),
+    // Extra views of this colourway (close-up detail shots), shown in the zoom.
+    views: jsonb("views").$type<ColourwayView[]>().notNull().default([]),
+    // Canonical tee colour for the catalogue filter (src/ingest/tee-colour.ts).
+    teeColour: text("tee_colour"),
+    // The exact fabric colour from the design pack ("#0D0D0D"), for true-colour swatches.
+    teeHex: text("tee_hex"),
+    // Paths only. Print masters are never uploaded; the print team finds them in the archive.
+    printFiles: jsonb("print_files").$type<string[]>().notNull().default([]),
+    sortOrder: integer("sort_order").notNull().default(0),
+  },
+  (t) => [unique("colourway_design_image").on(t.designId, t.imageHash)],
+);
 
 // --- Stage 1: team round -------------------------------------------------------
 

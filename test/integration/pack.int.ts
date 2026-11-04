@@ -71,7 +71,7 @@ const colours: Record<string, string> = {
   "g-fav-tess": "#e0d8c8",
   "g-fav-tess-back": "#c8b890",
   "e-logo-old": "#202020",
-  "e-logo-copy": "#202020", // the same bytes as e-logo-old: reported, skipped
+  "e-logo-copy": "#202020", // the same bytes as e-logo-old, on purpose: both kept
 };
 
 async function writePack(over: Record<string, Buffer> = {}) {
@@ -161,9 +161,9 @@ describe("design pack import", () => {
   it("loads one design per family, with backs attached and superseded hidden", async () => {
     const stats = await run();
     expect(stats.designs.inserted).toBe(4);
-    expect(stats.colourways.inserted).toBe(4); // halo A+B, tessellation, logo-old
-    expect(stats.duplicates).toEqual(["e-logo-copy is the same image as e-logo-old"]);
-    expect(stats.images.uploaded).toBe(10); // 4 colourways + 1 back, full + thumb each
+    expect(stats.colourways.inserted).toBe(5); // halo A+B, tessellation, logo-old, logo-copy
+    expect(stats.duplicates).toEqual(["e-logo-copy uses the same image as e-logo-old (both kept)"]);
+    expect(stats.images.uploaded).toBe(12); // 5 colourways + 1 back, full + thumb each
 
     const designs = await db.select().from(schema.design);
     const byKey = Object.fromEntries(designs.map((x) => [x.familyKey, x]));
@@ -192,6 +192,14 @@ describe("design pack import", () => {
     expect(tess[0]).toMatchObject({ teeColour: "Cream", teeHex: "#F3EDE2" });
     expect(tess[0]!.blurDataUrl).toMatch(/^data:image\/webp;base64,/);
     expect(tess[0]!.imageUrl).toBe("/_local/18gtas/designs/g-tas/favourites/g-fav-tess.webp");
+
+    // The deliberate twin keeps its own files at its own pathname.
+    const twin = await db
+      .select()
+      .from(schema.colourway)
+      .where(eq(schema.colourway.designId, byKey["e-logo-copy"]!.id));
+    expect(twin).toHaveLength(1);
+    expect(twin[0]!.imageUrl).toContain("/e-logo-copy.webp");
   });
 
   it("deletes untouched old archive designs and hides the ones past rounds used", async () => {
@@ -205,7 +213,7 @@ describe("design pack import", () => {
   it("changes nothing on a second run", async () => {
     const stats = await run();
     expect(stats.designs).toEqual({ inserted: 0, updated: 0, unchanged: 4 });
-    expect(stats.colourways).toMatchObject({ inserted: 0, updated: 0, unchanged: 4, removed: 0 });
+    expect(stats.colourways).toMatchObject({ inserted: 0, updated: 0, unchanged: 5, removed: 0 });
     expect(stats.images).toEqual({ uploaded: 0, alreadyStored: 0 });
     expect(stats.retired).toEqual({ deleted: [], hidden: [] });
   });

@@ -22,7 +22,7 @@ import {
 } from "../db/schema.ts";
 import { audit } from "../lib/audit.ts";
 import { sha256 } from "./images.ts";
-import type { PackFamily, PackPlan, PackView } from "./manifest.ts";
+import type { PackColourway, PackFamily, PackPlan, PackView } from "./manifest.ts";
 import type { ImageStore } from "./storage.ts";
 
 type Db = ReturnType<typeof createDb>;
@@ -114,24 +114,46 @@ export async function applyPack(
     }
   }
 
+  // --- Designs first, so each image is matched within its own design ---------------
+  const designIds = new Map<string, string>(); // family key → design id
+  for (const family of plan.families) {
+    designIds.set(
+      family.key,
+      await upsertDesign(db, family, collectionIds.get(family.collection.slug)!, stats),
+    );
+  }
+
   // --- Images: hash every file; upload only what the database doesn't have yet -------
-  const hashes = new Map<string, string>(); // colourway slug → sha256 of the full image
-  const seen = new Map<string, string>();
-  for (const f of plan.families)
-    for (const c of f.colourways) {
+  // The same image may appear in two designs on purpose (an alternative choice): both are
+  // kept, each with its own files at its own pathnames. Only a repeat inside one design is
+  // skipped, because a design shows each image once.
+  type Item = { family: PackFamily; c: PackColourway; designId: string; hash: string };
+  const items: Item[] = [];
+  const firstWithHash = new Map<string, string>();
+  for (const family of plan.families) {
+    const designId = designIds.get(family.key)!;
+    const inDesign = new Set<string>();
+    for (const c of family.colourways) {
       const hash = sha256(await readFile(join(packDir, c.image)));
-      const first = seen.get(hash);
-      if (first) stats.duplicates.push(`${c.slug} is the same image as ${first}`);
-      else seen.set(hash, c.slug);
-      hashes.set(c.slug, hash);
+      const first = firstWithHash.get(hash);
+      if (inDesign.has(hash)) {
+        stats.duplicates.push(`${c.slug}: the same image twice in one design, shown once`);
+        continue;
+      }
+      if (first) stats.duplicates.push(`${c.slug} uses the same image as ${first} (both kept)`);
+      else firstWithHash.set(hash, c.slug);
+      inDesign.add(hash);
+      items.push({ family, c, designId, hash });
     }
+  }
+  const rowKey = (designId: string, hash: string) => `${designId}:${hash}`;
   const known = new Map(
     (
       await db
         .select()
         .from(colourway)
-        .where(inArray(colourway.imageHash, [...seen.keys()]))
-    ).map((row) => [row.imageHash, row]),
+        .where(inArray(colourway.designId, [...designIds.values()]))
+    ).map((row) => [rowKey(row.designId, row.imageHash), row]),
   );
 
   type Prepared = {
@@ -141,25 +163,21 @@ export async function applyPack(
     views: ColourwayView[];
   };
   const prepared = new Map<string, Prepared>();
-  const todo = plan.families.flatMap((f) =>
-    f.colourways.filter((c) => {
-      const hash = hashes.get(c.slug)!;
-      if (seen.get(hash) !== c.slug) return false; // a duplicate: skipped
-      const row = known.get(hash);
-      // Already stored with the same views: nothing to upload.
-      return !(
-        row &&
-        row.blurDataUrl &&
-        same(
-          row.views.map((v) => v.label),
-          c.views.map((v) => v.label),
-        )
-      );
-    }),
-  );
-  log(`${todo.length} colourways need images (${seen.size - todo.length} already stored).`);
+  const todo = items.filter(({ c, designId, hash }) => {
+    const row = known.get(rowKey(designId, hash));
+    // Already stored with the same views: nothing to upload.
+    return !(
+      row &&
+      row.blurDataUrl &&
+      same(
+        row.views.map((v) => v.label),
+        c.views.map((v) => v.label),
+      )
+    );
+  });
+  log(`${todo.length} colourways need images (${items.length - todo.length} already stored).`);
   let done = 0;
-  await mapLimit(todo, opts.concurrency ?? 6, async (c) => {
+  await mapLimit(todo, opts.concurrency ?? 6, async ({ c }) => {
     const bytes = await readFile(join(packDir, c.image));
     const views = [];
     for (const v of c.views) views.push(await syncView(v));
@@ -172,21 +190,13 @@ export async function applyPack(
     if (++done % 25 === 0) log(`  images ${done}/${todo.length}`);
   });
 
-  // --- Designs and colourways ------------------------------------------------------
+  // --- Colourways ------------------------------------------------------------------
   for (const family of plan.families) {
-    const designId = await upsertDesign(
-      db,
-      family,
-      collectionIds.get(family.collection.slug)!,
-      stats,
-    );
-    const keep: string[] = [];
-    for (const [sortOrder, c] of family.colourways.entries()) {
-      const hash = hashes.get(c.slug)!;
-      if (seen.get(hash) !== c.slug) continue;
-      keep.push(hash);
+    const designId = designIds.get(family.key)!;
+    const mine = items.filter((i) => i.family === family);
+    for (const [sortOrder, { c, hash }] of mine.entries()) {
       const images = prepared.get(c.slug);
-      const row = known.get(hash);
+      const row = known.get(rowKey(designId, hash));
       const fields = {
         designId,
         name: c.name,
@@ -213,6 +223,7 @@ export async function applyPack(
     }
     // Colourways the pack no longer has (an image was redone) go, unless a public round
     // shows that exact colourway.
+    const keep = mine.map((i) => i.hash);
     const stale = await db
       .select({ id: colourway.id })
       .from(colourway)
