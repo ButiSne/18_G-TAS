@@ -18,6 +18,13 @@ import {
   updateDesign,
 } from "@/src/lib/stages";
 
+/** Pages the public sees that depend on the shortlist and the vote: refresh them at once. */
+function revalidatePublicPages() {
+  for (const path of ["/", "/collection/eiteen", "/collection/g-tas", "/vote", "/results"]) {
+    revalidatePath(path);
+  }
+}
+
 export type StageResult = { ok: true } | { ok: false; code: string };
 
 async function guarded(fn: (adminId: string) => Promise<void>): Promise<StageResult> {
@@ -51,6 +58,7 @@ export async function updateDesignAction(_prev: StageResult | null, form: FormDa
   if (!parsed.success) return { ok: false, code: "bad_design" } as StageResult;
   const result = await guarded((actorId) => updateDesign(getDb()!, { ...parsed.data, actorId }));
   revalidatePath("/admin/designs");
+  revalidatePublicPages();
   return result;
 }
 
@@ -74,6 +82,7 @@ export async function confirmShortlistAction(_prev: StageResult | null, form: Fo
   });
   if (result.ok) {
     revalidatePath("/admin");
+    revalidatePublicPages();
     redirect("/admin");
   }
   return result;
@@ -95,7 +104,7 @@ export async function advancePublicRoundAction(
     }),
   );
   revalidatePath("/admin");
-  revalidatePath("/vote");
+  revalidatePublicPages();
 }
 
 export async function setLiveResultsAction(publicRoundId: string, on: boolean) {
@@ -103,6 +112,7 @@ export async function setLiveResultsAction(publicRoundId: string, on: boolean) {
   if (!id.success) return;
   await guarded((actorId) => setLiveResults(getDb()!, { publicRoundId: id.data, on, actorId }));
   revalidatePath("/admin");
+  revalidatePublicPages();
 }
 
 export async function saveFinalTenAction(_prev: StageResult | null, form: FormData) {

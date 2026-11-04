@@ -24,7 +24,13 @@
       "title": "{count} new designs. Nobody has seen them yet.",
       "titleFallback": "New designs. Nobody has seen them yet.",
       "body": "The team is narrowing them down right now. Soon you will swipe through the shortlist on your phone: YEBO or CHA. Your swipes help decide what we make.",
-      "stamp": "Unreleased"
+      "stamp": "Unreleased",
+      "revealEyebrow": "The shortlist is in",
+      "revealTitle": "{count} designs made the cut. You decide.",
+      "revealBody": "The team picked these from {total} new designs. Swipe each one YEBO or CHA, then choose your number one.",
+      "ctaVote": "Make your choice: YEBO or CHA",
+      "ctaSoon": "Voting opens soon. Tell your crew",
+      "ctaResults": "See the results"
     },
     "twoLines": {
       "title": "Two lines. One brand.",
@@ -38,7 +44,8 @@
         "name": "XVIII · G-TAS",
         "tag": "For the elders",
         "body": "Gold, Roman numerals and monograms. Quiet luxury that lasts."
-      }
+      },
+      "see": "See the collection"
     },
     "how": {
       "title": "How the comeback works",
@@ -58,7 +65,7 @@
       }
     },
     "closing": {
-      "title": "18 is back. Pass it on.",
+      "title": "18 G-TAS is back. Pass it on.",
       "body": "Voting opens soon. Share this with your crew so nobody misses the first drop.",
       "note": "Watch our Facebook page and WhatsApp groups for the voting link."
     }
@@ -335,5 +342,23 @@
       "not_ready": "Voting isn’t ready yet.",
       "network": "No connection. Check your data and try again."
     }
+  },
+  "collection": {
+    "eiteen": {
+      "name": "EITEEN",
+      "tag": "For the youth",
+      "body": "Kasi, pixel, street. Loud colour and big 18s, made for the block."
+    },
+    "gtas": {
+      "name": "XVIII · G-TAS",
+      "tag": "For the elders",
+      "body": "Gold, Roman numerals and monograms. Quiet luxury that lasts."
+    },
+    "shortlisted": "{count} on the shortlist",
+    "teaserTitle": "{count} new designs in this line",
+    "teaserBody": "They stay under wraps until the team has picked its shortlist. Then they appear here, and you vote.",
+    "empty": "No designs from this line made the shortlist this time.",
+    "other": "See the other line",
+    "back": "Home"
   }
 }

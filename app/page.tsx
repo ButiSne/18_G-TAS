@@ -1,12 +1,26 @@
+import Image from "next/image";
+import Link from "next/link";
+import type { Line } from "@/src/lib/design-line";
 import { fill, getMessages } from "@/src/lib/messages";
-import { getShowcase, type Showcase, type Teaser } from "@/src/lib/showcase";
+import {
+  getShowcase,
+  shortlistFor,
+  type Showcase,
+  type ShortlistCard,
+  type Teaser,
+} from "@/src/lib/showcase";
 import { whatsappShareUrl } from "@/src/lib/site";
 
-// Design counts come from the database; refresh them hourly.
+// Data comes from the database. Admin actions that change it (confirming the shortlist,
+// opening or closing the vote) revalidate this page at once; hourly is the backstop.
 export const revalidate = 3600;
 
 const t = getMessages();
 const h = t.home;
+
+/** Before the shortlist: all new designs in the line. After: those on the shortlist. */
+const lineCount = (show: Showcase, line: Line) =>
+  show.shortlist.length ? shortlistFor(show, line).length : show.byLine[line];
 
 export default async function Home() {
   const show = await getShowcase();
@@ -14,7 +28,7 @@ export default async function Home() {
   return (
     <>
       <Hero share={share} />
-      <Peek show={show} />
+      <Peek show={show} share={share} />
       <TwoLines show={show} />
       <How />
       <Closing share={share} />
@@ -73,10 +87,14 @@ function Hero({ share }: { share: string }) {
             <span className="text-[var(--muted)]">
               {h.timelineEst} {h.foundedYear}
             </span>
-            <span
-              aria-hidden
-              className="animate-draw h-px flex-1 bg-linear-to-r from-gold/20 to-gold"
-            />
+            {/* 2008 → 2026, over and over: the line draws while a comet runs ahead of it. */}
+            <span aria-hidden className="relative h-px flex-1">
+              <span className="bg-gold/15 absolute inset-0" />
+              <span className="timeline-fill from-gold/30 to-gold absolute inset-0 bg-linear-to-r" />
+              <span className="timeline-comet absolute inset-0">
+                <span className="bg-gold-light absolute top-1/2 left-0 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full shadow-[0_0_10px_3px_rgba(247,233,191,0.75)]" />
+              </span>
+            </span>
             <span className="text-[var(--accent)]">
               {h.timelineBack} {h.returnYear}
             </span>
@@ -109,21 +127,116 @@ function Hero({ share }: { share: string }) {
   );
 }
 
-function Peek({ show }: { show: Showcase }) {
+function Peek({ show, share }: { show: Showcase; share: string }) {
+  const revealed = show.shortlist.length > 0;
   return (
     <section
       aria-labelledby="peek-title"
       className="surface-dark overflow-hidden border-t border-[var(--line)] py-14"
     >
       <div className="mx-auto max-w-5xl px-4">
-        <p className="text-lime font-mono text-xs tracking-[0.3em] uppercase">{h.peek.eyebrow}</p>
+        <p className="text-lime font-mono text-xs tracking-[0.3em] uppercase">
+          {revealed ? h.peek.revealEyebrow : h.peek.eyebrow}
+        </p>
         <h2 id="peek-title" className="font-youth mt-3 max-w-xl text-3xl leading-tight sm:text-5xl">
-          {show.total ? fill(h.peek.title, { count: show.total }) : h.peek.titleFallback}
+          {revealed
+            ? fill(h.peek.revealTitle, { count: show.shortlist.length })
+            : show.total
+              ? fill(h.peek.title, { count: show.total })
+              : h.peek.titleFallback}
         </h2>
       </div>
-      {show.teasers.length > 0 && <TeaserStrip teasers={show.teasers} />}
-      <p className="mx-auto mt-8 max-w-5xl px-4 text-[var(--muted)]">{h.peek.body}</p>
+      {revealed ? (
+        <ShortlistStrip cards={show.shortlist} />
+      ) : (
+        show.teasers.length > 0 && <TeaserStrip teasers={show.teasers} />
+      )}
+      <div className="mx-auto mt-8 max-w-5xl px-4">
+        <p className="text-[var(--muted)]">
+          {revealed ? fill(h.peek.revealBody, { total: show.total }) : h.peek.body}
+        </p>
+        <ChoiceButton voting={show.voting} share={share} />
+      </div>
     </section>
+  );
+}
+
+/** The call to action under the strip follows the public vote's state. */
+function ChoiceButton({ voting, share }: { voting: Showcase["voting"]; share: string }) {
+  const base =
+    "mt-6 inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-full px-6 text-center font-bold transition active:scale-[0.98] sm:w-auto";
+  if (voting === "open") {
+    return (
+      <Link href="/vote" className={`bg-gold text-onyx ${base}`}>
+        {h.peek.ctaVote} <span aria-hidden>→</span>
+      </Link>
+    );
+  }
+  if (voting === "closed" || voting === "published") {
+    return (
+      <Link href="/results" className={`bg-gold text-onyx ${base}`}>
+        {h.peek.ctaResults} <span aria-hidden>→</span>
+      </Link>
+    );
+  }
+  return (
+    <a
+      href={share}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`border border-ivory/25 ${base}`}
+    >
+      <ChatIcon />
+      {h.peek.ctaSoon}
+    </a>
+  );
+}
+
+/** After the team's vote: the real shortlisted designs, drifting in two rows. */
+function ShortlistStrip({ cards }: { cards: ShortlistCard[] }) {
+  const half = Math.ceil(cards.length / 2);
+  const rows = [cards.slice(0, half), cards.slice(half)].filter((r) => r.length);
+  return (
+    <div className="mt-8 space-y-3">
+      {rows.map((row, i) => (
+        <div
+          key={i}
+          className="marquee flex w-max gap-3"
+          style={{ animationDirection: i % 2 ? "reverse" : "normal" }}
+        >
+          {[...row, ...row].map((card, j) => (
+            <Link
+              key={`${card.designId}-${j}`}
+              href={`/collection/${card.line === "EITEEN" ? "eiteen" : "g-tas"}`}
+              // The duplicate half only makes the loop seamless: keep it out of the tab order.
+              tabIndex={j >= row.length ? -1 : undefined}
+              aria-hidden={j >= row.length ? true : undefined}
+              className="relative h-44 w-36 shrink-0 overflow-hidden rounded-2xl bg-[#ececec] ring-1 ring-white/10"
+            >
+              <Image
+                src={card.thumbUrl}
+                alt={`${card.title}, ${card.colourwayName}`}
+                fill
+                sizes="144px"
+                placeholder={card.blurDataUrl ? "blur" : "empty"}
+                blurDataURL={card.blurDataUrl ?? undefined}
+                className="object-cover"
+              />
+              <span
+                className={`text-onyx absolute top-2 left-2 rounded-full px-2 py-0.5 font-mono text-[9px] tracking-widest uppercase ${
+                  card.line === "EITEEN" ? "bg-lime" : "bg-gold"
+                }`}
+              >
+                {card.line}
+              </span>
+              <span className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 to-transparent p-2 pt-6 text-xs font-bold text-white">
+                {card.title}
+              </span>
+            </Link>
+          ))}
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -179,8 +292,12 @@ function TwoLines({ show }: { show: Showcase }) {
       <h2 id="lines-title" className="font-luxe text-3xl sm:text-5xl">
         {l.title}
       </h2>
+      {/* Each card is a link to that line's collection page. */}
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
-        <article className="surface-dark relative overflow-hidden rounded-3xl p-6 ring-1 ring-white/10">
+        <Link
+          href="/collection/eiteen"
+          className="surface-dark group relative block overflow-hidden rounded-3xl p-6 ring-1 ring-white/10 transition active:scale-[0.99]"
+        >
           <div
             aria-hidden
             className="from-lime via-pink to-teal absolute inset-x-0 top-0 h-1.5 bg-linear-to-r"
@@ -188,9 +305,20 @@ function TwoLines({ show }: { show: Showcase }) {
           <p className="text-lime font-mono text-xs tracking-[0.25em] uppercase">{l.eiteen.tag}</p>
           <h3 className="font-youth mt-2 text-5xl">{l.eiteen.name}</h3>
           <p className="mt-3 text-[var(--muted)]">{l.eiteen.body}</p>
-          <div className="[&>p]:bg-lime [&>p]:text-onyx">{count(show.byLine.EITEEN)}</div>
-        </article>
-        <article className="surface-dark ring-gold/40 relative overflow-hidden rounded-3xl bg-[linear-gradient(160deg,var(--color-midnight),var(--color-onyx))] p-6 ring-1">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="[&>p]:bg-lime [&>p]:text-onyx">{count(lineCount(show, "EITEEN"))}</div>
+            <span className="text-lime mt-5 text-sm font-bold">
+              {l.see}{" "}
+              <span aria-hidden className="inline-block transition group-hover:translate-x-1">
+                →
+              </span>
+            </span>
+          </div>
+        </Link>
+        <Link
+          href="/collection/g-tas"
+          className="surface-dark ring-gold/40 group relative block overflow-hidden rounded-3xl bg-[linear-gradient(160deg,var(--color-midnight),var(--color-onyx))] p-6 ring-1 transition active:scale-[0.99]"
+        >
           <div
             aria-hidden
             className="from-gold-dark via-gold-light to-gold-dark absolute inset-x-0 top-0 h-1.5 bg-linear-to-r"
@@ -198,8 +326,16 @@ function TwoLines({ show }: { show: Showcase }) {
           <p className="text-gold font-mono text-xs tracking-[0.25em] uppercase">{l.gtas.tag}</p>
           <h3 className="font-numerals text-gold mt-2 text-3xl tracking-[0.15em]">{l.gtas.name}</h3>
           <p className="mt-3 text-[var(--muted)]">{l.gtas.body}</p>
-          <div className="[&>p]:bg-gold [&>p]:text-onyx">{count(show.byLine["G-TAS"])}</div>
-        </article>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="[&>p]:bg-gold [&>p]:text-onyx">{count(lineCount(show, "G-TAS"))}</div>
+            <span className="text-gold mt-5 text-sm font-bold">
+              {l.see}{" "}
+              <span aria-hidden className="inline-block transition group-hover:translate-x-1">
+                →
+              </span>
+            </span>
+          </div>
+        </Link>
       </div>
     </section>
   );

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { summarise } from "@/src/lib/showcase";
+import { shortlistFor, summarise, votingState } from "@/src/lib/showcase";
 
 const row = (id: string, line: "EITEEN" | "G-TAS", blur: string | null = `data:${id}`) => ({
   id,
@@ -33,5 +33,41 @@ describe("summarise (landing page first look)", () => {
 
   it("handles an empty catalogue", () => {
     expect(summarise([], 10)).toEqual({ total: 0, byLine: { EITEEN: 0, "G-TAS": 0 }, teasers: [] });
+  });
+});
+
+describe("votingState", () => {
+  it("maps the public round's status to what the landing page says", () => {
+    expect(votingState(null)).toBe("none");
+    expect(votingState("draft")).toBe("soon");
+    expect(votingState("open")).toBe("open");
+    expect(votingState("closed")).toBe("closed");
+    expect(votingState("published")).toBe("published");
+    expect(votingState("weird")).toBe("none");
+  });
+});
+
+describe("shortlistFor", () => {
+  const card = (slug: string, line: "EITEEN" | "G-TAS", tags: string[] = []) => ({
+    designId: slug,
+    slug,
+    title: slug,
+    line,
+    tags,
+    colourwayName: "Black",
+    thumbUrl: `https://x/${slug}.webp`,
+    blurDataUrl: null,
+  });
+  const show = {
+    total: 44,
+    byLine: { EITEEN: 29, "G-TAS": 15 },
+    teasers: [],
+    voting: "open" as const,
+    shortlist: [card("a", "EITEEN"), card("b", "G-TAS"), card("c", "G-TAS", ["crossover"])],
+  };
+
+  it("shows only the shortlisted designs of a line, crossovers in both", () => {
+    expect(shortlistFor(show, "EITEEN").map((c) => c.slug)).toEqual(["a", "c"]);
+    expect(shortlistFor(show, "G-TAS").map((c) => c.slug)).toEqual(["b", "c"]);
   });
 });

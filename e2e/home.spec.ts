@@ -44,3 +44,14 @@ test("the footer links the legal pages, and no competition rules", async ({ page
     .click();
   await expect(page.getByRole("heading", { level: 1, name: "Terms of use" })).toBeVisible();
 });
+
+test("the line tiles open their collection pages", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "18 G-TAS is back. Pass it on." })).toBeVisible();
+  await page.getByRole("link", { name: /For the youth/ }).click();
+  await expect(page).toHaveURL(/\/collection\/eiteen$/);
+  await expect(page.getByRole("heading", { level: 1, name: "EITEEN" })).toBeVisible();
+  await page.getByRole("link", { name: /See the other line/ }).click();
+  await expect(page).toHaveURL(/\/collection\/g-tas$/);
+  await expect(page.getByRole("heading", { level: 1, name: "XVIII · G-TAS" })).toBeVisible();
+});

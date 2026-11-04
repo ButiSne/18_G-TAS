@@ -120,17 +120,53 @@ body {
   animation: shimmer 5s linear infinite;
 }
 
-@keyframes draw {
-  from {
+/* The 2008 → 2026 timeline, on a loop: the line draws while a comet runs at its tip, they
+   hold at 2026, fade, and start again. Same duration and easing, so the comet stays on
+   the line's leading edge. */
+@keyframes timeline-fill {
+  0% {
     transform: scaleX(0);
+    opacity: 1;
   }
-  to {
+  70% {
     transform: scaleX(1);
+    opacity: 1;
+  }
+  88% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 0;
   }
 }
-.animate-draw {
+/* The comet rides on a full-width track that slides by its own width: a transform, so the
+   phone's GPU moves it without re-running layout every frame. */
+@keyframes timeline-comet {
+  0% {
+    transform: translateX(0%);
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  70% {
+    transform: translateX(100%);
+    opacity: 1;
+  }
+  88%,
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+.timeline-fill {
   transform-origin: left;
-  animation: draw 1.4s 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation: timeline-fill 3.2s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+}
+.timeline-comet {
+  animation: timeline-comet 3.2s cubic-bezier(0.45, 0, 0.25, 1) infinite;
 }
 
 @keyframes marquee {
@@ -184,5 +220,13 @@ body {
   .marquee,
   .text-gold-shimmer {
     animation: none !important;
+  }
+  /* The timeline rests fully drawn, without the comet. */
+  .timeline-fill {
+    animation: none !important;
+    transform: none;
+  }
+  .timeline-comet {
+    display: none;
   }
 }
