@@ -12,20 +12,24 @@ import { computeStandings, type MemberPicks, type Standing } from "./scoring.ts"
 type Db = ReturnType<typeof createDb>;
 export type RoundStatus = "draft" | "open" | "closed" | "published";
 
+export type RoundErrorCode =
+  | "no_round"
+  | "not_open"
+  | "not_draft"
+  | "not_in_round"
+  | "already_submitted"
+  | "invalid_picks"
+  | "unknown_design"
+  | "bad_settings";
+
+// Explicit fields, not parameter properties: plain Node (scripts) strips types only.
 export class RoundError extends Error {
-  constructor(
-    public code:
-      | "no_round"
-      | "not_open"
-      | "not_draft"
-      | "not_in_round"
-      | "already_submitted"
-      | "invalid_picks"
-      | "unknown_design"
-      | "bad_settings",
-    public problems: PicksProblem[] = [],
-  ) {
+  code: RoundErrorCode;
+  problems: PicksProblem[];
+  constructor(code: RoundErrorCode, problems: PicksProblem[] = []) {
     super(code);
+    this.code = code;
+    this.problems = problems;
   }
 }
 

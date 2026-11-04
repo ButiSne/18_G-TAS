@@ -292,7 +292,7 @@ Work in this order. Open one pull request per step, keep it green, and update th
 - [x] **6. Picks:** pick tray, ranking, submit and lock; database constraints; unit tests for exactly-six and unique-rank rules.
 - [x] **7. Scoring:** Borda count, tie-breaks 1–3, results page; unit tests covering ties.
 - [x] **8. Admin:** rounds, shortlist confirmation, unlock, exports, audit log.
-- [ ] **9. Public vote:** favourite mode, Turnstile, rate limiting, device cookie and hash, optional demographics, thanks page.
+- [x] **9. Public vote:** favourite mode, Turnstile, rate limiting, device cookie and hash, optional demographics, thanks page.
 - [ ] **10. Head-to-head:** matchup flow, Elo or Bradley-Terry ranking with unit tests.
 - [ ] **11. Sharing:** OG images per design, referral `?ref=` tracking.
 - [ ] **12. Legal and privacy:** pages, retention job (Vercel Cron) deleting raw vote rows 90 days after publish.
