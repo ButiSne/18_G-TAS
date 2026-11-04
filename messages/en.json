@@ -127,7 +127,8 @@
     "copied": "Copied",
     "inviteText": "Hi {name}, here is your personal sign-in link for the 18 G-TAS design vote. It works once, on one phone, and expires in 24 hours: {url}",
     "revoke": "Sign out of all phones",
-    "inviteError": "Could not create the link. Try again."
+    "inviteError": "Could not create the link. Try again.",
+    "slow": "Too many sign-in tries from this network. Wait a few minutes and try again."
   },
   "catalogue": {
     "title": "Designs",
@@ -340,7 +341,8 @@
       "bot": "We couldn’t confirm you’re not a robot. Please try again.",
       "session": "Your session expired. Please reload and tap Let’s go again.",
       "not_ready": "Voting isn’t ready yet.",
-      "network": "No connection. Check your data and try again."
+      "network": "No connection. Check your data and try again.",
+      "rate_limited": "Easy, speedy. Wait a moment and try again."
     }
   },
   "collection": {
