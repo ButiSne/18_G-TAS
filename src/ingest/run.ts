@@ -4,7 +4,7 @@
 
 import { readdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { createDb } from "../db/client.ts";
 import { CROSSOVER_TAG } from "../lib/design-line.ts";
 import { collection, colourway, design } from "../db/schema.ts";
@@ -233,7 +233,10 @@ export async function applyPlan(
     }
 
     for (const [sortOrder, c] of family.colourways.entries()) {
-      const [current] = await db.select().from(colourway).where(eq(colourway.imageHash, c.hash));
+      const [current] = await db
+        .select()
+        .from(colourway)
+        .where(and(eq(colourway.designId, designId), eq(colourway.imageHash, c.hash)));
       const fields = {
         designId,
         name: c.name,

@@ -43,6 +43,13 @@
       "when": 1793812367637,
       "tag": "0005_blob_pack_and_comments",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793829905074,
+      "tag": "0006_image_unique_per_design",
+      "breakpoints": true
     }
   ]
 }

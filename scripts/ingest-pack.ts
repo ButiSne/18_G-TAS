@@ -94,7 +94,12 @@ function report(
       "",
     );
     if (s.duplicates.length)
-      lines.push("## Duplicate images (skipped)", "", ...s.duplicates.map((d) => `- ${d}`), "");
+      lines.push(
+        "## The same image in more than one design",
+        "",
+        ...s.duplicates.map((d) => `- ${d}`),
+        "",
+      );
   }
   lines.push(
     "## Needs a look",
