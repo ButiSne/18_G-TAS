@@ -135,7 +135,7 @@
     "joinExpiredTitle": "This link has expired",
     "joinExpiredBody": "It expired on {time} (SA time). Ask the admin for a fresh link on WhatsApp.",
     "joinUnknownTitle": "This link isn’t valid",
-    "joinUnknownBody": "Part of it may have been cut off when it was copied or forwarded. Ask the admin to send it again."
+    "joinUnknownBody": "It may have been replaced by a newer link (each new link cancels the older ones), or part of it was cut off when copied. Open the newest link you were sent, or ask the admin for a fresh one."
   },
   "catalogue": {
     "title": "Designs",
