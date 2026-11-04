@@ -12,8 +12,15 @@ const t = getMessages();
 // The token is in the URL: never send it on to another site in a Referer header.
 export const metadata = { title: t.auth.signinTitle, referrer: "no-referrer" as const };
 
-export default async function Join({ params }: { params: Promise<{ token: string }> }) {
+export default async function Join({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ token: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { token } = await params;
+  const slow = (await searchParams).slow === "1";
   const db = getDb();
   const invite =
     db && looksLikeToken(token) ? await peekInvite(db, token, new Date()) : { state: "unknown" };
@@ -46,6 +53,11 @@ export default async function Join({ params }: { params: Promise<{ token: string
         {fill(t.auth.joinHello, { name: "name" in invite ? (invite.name ?? "") : "" })}
       </h1>
       <p className="mt-4 text-[var(--muted)]">{t.auth.joinBody}</p>
+      {slow && (
+        <p role="alert" className="text-coral mt-4 text-sm">
+          {t.auth.slow}
+        </p>
+      )}
       <form action={redeemAction.bind(null, token)} className="mt-8">
         <SubmitButton className={buttonPrimary} pending={t.auth.joinWorking}>
           {t.auth.joinButton}

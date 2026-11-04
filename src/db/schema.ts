@@ -181,6 +181,9 @@ export const publicRound = pgTable("public_round", {
   showLiveResults: boolean("show_live_results").notNull().default(false),
   requireEmail: boolean("require_email").notNull().default(false),
   competition: boolean("competition").notNull().default(false),
+  // Frozen results, written when raw votes are deleted 90 days after publishing (brief §6),
+  // so the results page keeps working without any per-device rows.
+  resultsSnapshot: jsonb("results_snapshot"),
 });
 
 export const publicEntry = pgTable(
@@ -365,4 +368,12 @@ export const session = pgTable("session", {
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   revokedAt: timestamp("revoked_at", { withTimezone: true }),
   createdAt: createdAt(),
+});
+
+// Fixed-window request counters for rate limiting, in Postgres rather than a new service.
+// Keys hold only salted hashes (e.g. "swipe:dev:<hash>"); stale rows are swept daily.
+export const rateLimit = pgTable("rate_limit", {
+  key: text("key").primaryKey(),
+  windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+  count: integer("count").notNull(),
 });

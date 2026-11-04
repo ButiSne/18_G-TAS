@@ -7,9 +7,11 @@ import { z } from "zod";
 import { getDb } from "@/src/db/server";
 import { seededShuffle } from "@/src/lib/catalogue";
 import { currentPublicRound, publicEntries } from "@/src/lib/stages";
+import { hitAll, LIMITS, type Limit } from "@/src/lib/rate-limit";
 import { normaliseRef } from "@/src/lib/tally";
 import {
   readVoterCookie,
+  requestIpHash,
   verifiedVoter,
   verifyTurnstile,
   voteSecrets,
@@ -57,6 +59,10 @@ export async function startVotingAction(turnstileToken: string | null): Promise<
   const roundId = await openRoundId();
   if (!secrets) return { ok: false, code: "not_ready" };
   if (!roundId) return { ok: false, code: "not_open" };
+  const ipHash = await requestIpHash(secrets.salt);
+  if (!(await hitAll(getDb()!, [[`start:ip:${ipHash}`, LIMITS.startPerIp]], new Date()))) {
+    return { ok: false, code: "rate_limited" };
+  }
   if (!(await verifyTurnstile(turnstileToken))) return { ok: false, code: "bot" };
 
   const existing = await readVoterCookie(secrets.secret);
@@ -67,15 +73,21 @@ export async function startVotingAction(turnstileToken: string | null): Promise<
   return { ok: true, order: await orderFor(roundId, deviceHash), ...state };
 }
 
+type Voter = { publicRoundId: string; deviceHash: string; ipHash: string };
+
+/** Runs a vote step for this phone, after its session and rate limits are checked. */
 async function asVoter(
-  fn: (v: { publicRoundId: string; deviceHash: string; ipHash: string }) => Promise<void>,
+  limits: (v: Voter) => [string, Limit][],
+  fn: (v: Voter) => Promise<void>,
 ): Promise<VoteResult> {
   const voter = await verifiedVoter();
   if (!voter) return { ok: false, code: "session" };
   const roundId = await openRoundId();
   if (!roundId) return { ok: false, code: "not_open" };
+  const v = { publicRoundId: roundId, ...voter };
+  if (!(await hitAll(getDb()!, limits(v), new Date()))) return { ok: false, code: "rate_limited" };
   try {
-    await fn({ publicRoundId: roundId, ...voter });
+    await fn(v);
     return { ok: true };
   } catch (error) {
     if (error instanceof VoteError) return { ok: false, code: error.code };
@@ -83,25 +95,35 @@ async function asVoter(
   }
 }
 
+const swipeLimits = (v: Voter): [string, Limit][] => [
+  [`swipe:dev:${v.deviceHash}`, LIMITS.swipePerDevice],
+  [`swipe:ip:${v.ipHash}`, LIMITS.swipePerIp],
+];
+const finishLimits = (v: Voter): [string, Limit][] => [
+  [`finish:dev:${v.deviceHash}`, LIMITS.finishPerDevice],
+];
+
 export async function swipeAction(entryId: string, liked: boolean, ref: string | null) {
   if (!uuid.safeParse(entryId).success) return { ok: false, code: "unknown_entry" } as VoteResult;
-  return asVoter((v) =>
+  return asVoter(swipeLimits, (v) =>
     recordSwipe(getDb()!, { ...v, entryId, liked: liked === true, ref: normaliseRef(ref) }),
   );
 }
 
 export async function undoAction(entryId: string) {
   if (!uuid.safeParse(entryId).success) return { ok: false, code: "unknown_entry" } as VoteResult;
-  return asVoter((v) => undoSwipe(getDb()!, { ...v, entryId }));
+  return asVoter(swipeLimits, (v) => undoSwipe(getDb()!, { ...v, entryId }));
 }
 
 export async function numberOneAction(entryId: string, ref: string | null) {
   if (!uuid.safeParse(entryId).success) return { ok: false, code: "unknown_entry" } as VoteResult;
-  return asVoter((v) => chooseNumberOne(getDb()!, { ...v, entryId, ref: normaliseRef(ref) }));
+  return asVoter(finishLimits, (v) =>
+    chooseNumberOne(getDb()!, { ...v, entryId, ref: normaliseRef(ref) }),
+  );
 }
 
 export async function aboutYouAction(ageBracket: string | null, province: string | null) {
-  return asVoter((v) =>
+  return asVoter(finishLimits, (v) =>
     saveDemographics(getDb()!, {
       publicRoundId: v.publicRoundId,
       deviceHash: v.deviceHash,

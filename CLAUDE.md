@@ -295,7 +295,7 @@ Work in this order. Open one pull request per step, keep it green, and update th
 - [x] **9. Public vote:** favourite mode, Turnstile, rate limiting, device cookie and hash, optional demographics, thanks page.
 - [ ] **10. Head-to-head:** matchup flow, Elo or Bradley-Terry ranking with unit tests.
 - [ ] **11. Sharing:** OG images per design, referral `?ref=` tracking.
-- [ ] **12. Legal and privacy:** pages, retention job (Vercel Cron) deleting raw vote rows 90 days after publish.
+- [x] **12. Legal and privacy:** pages, retention job (Vercel Cron) deleting raw vote rows 90 days after publish.
 - [ ] **13. Polish:** accessibility audit, Lighthouse ≥ 90 on mobile, reduced-motion support, empty and error states.
 - [ ] **14. Launch checklist:** environment variables set, domain live, test round run end to end with the five members, admin password manager handover.
 

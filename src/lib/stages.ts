@@ -299,6 +299,13 @@ export type PublicResults = {
 
 /** Results for one public round: ranking, and how many devices each channel brought. */
 export async function publicResults(db: Db, publicRoundId: string): Promise<PublicResults> {
+  // After the 90-day clean-up the raw rows are gone; the frozen snapshot answers instead.
+  const [frozen] = await db
+    .select({ snapshot: publicRound.resultsSnapshot })
+    .from(publicRound)
+    .where(eq(publicRound.id, publicRoundId));
+  if (frozen?.snapshot) return frozen.snapshot as PublicResults;
+
   const cards = await publicEntries(db, publicRoundId);
   const tallies = await db
     .select({

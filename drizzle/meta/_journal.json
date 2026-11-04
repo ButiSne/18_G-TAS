@@ -29,6 +29,13 @@
       "when": 1793771587539,
       "tag": "0003_swipe_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793792969522,
+      "tag": "0004_security",
+      "breakpoints": true
     }
   ]
 }
