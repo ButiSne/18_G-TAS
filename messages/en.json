@@ -121,5 +121,28 @@
     "inviteText": "Hi {name}, here is your personal sign-in link for the 18 G-TAS design vote. It works once, on one phone, and expires in 24 hours: {url}",
     "revoke": "Sign out of all phones",
     "inviteError": "Could not create the link. Try again."
+  },
+  "catalogue": {
+    "title": "Designs",
+    "count": "{count} designs",
+    "all": "All",
+    "filters": "Filters",
+    "collection": "Collection",
+    "colour": "Tee colour",
+    "print": "Print method",
+    "search": "Search",
+    "searchPlaceholder": "e.g. Kasi, XVIII, pixel",
+    "any": "Any",
+    "apply": "Show designs",
+    "reset": "Reset",
+    "shuffle": "Shuffle",
+    "empty": "No designs match these filters.",
+    "back": "All designs",
+    "colourways": "Colourways",
+    "details": "Close-ups",
+    "zoom": "Open full size",
+    "line": "Line",
+    "printNotSet": "Not set yet",
+    "colourwayOf": "{design}, {colourway}"
   }
 }

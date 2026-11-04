@@ -287,7 +287,7 @@ Work in this order. Open one pull request per step, keep it green, and update th
 - [x] **1. Scaffold:** Next.js + TypeScript + Tailwind with the brand tokens and fonts, ESLint and Prettier, Vitest, Playwright, GitHub Actions CI.
 - [x] **2. Database:** Drizzle schema (section 5), migrations, seed script (members, admin, one draft round).
 - [x] **3. Ingest:** `scripts/ingest.ts` (section 4) with `ingest-report.md`, family grouping, WebP and Blob upload, and the brand-name content check.
-- [ ] **4. Catalogue:** `/designs` and `/designs/[slug]` with filters, colourway switcher and zoom.
+- [x] **4. Catalogue:** `/designs` and `/designs/[slug]` with filters, colourway switcher and zoom.
 - [x] **5. Member auth:** invite-only sign-in (WhatsApp invite links, §0.9); `proxy.ts` protecting `/members/*`, `/admin/*` and `/designs/*`, plus a session check in every page and action.
 - [ ] **6. Picks:** pick tray, ranking, submit and lock; database constraints; unit tests for exactly-six and unique-rank rules.
 - [ ] **7. Scoring:** Borda count, tie-breaks 1–3, results page; unit tests covering ties.
