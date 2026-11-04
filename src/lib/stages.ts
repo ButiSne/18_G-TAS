@@ -25,19 +25,23 @@ import { roundResults } from "./team-round.ts";
 
 type Db = ReturnType<typeof createDb>;
 
+export type StageErrorCode =
+  | "round_not_closed"
+  | "already_confirmed"
+  | "tie_decision_required"
+  | "bad_transition"
+  | "no_public_round"
+  | "invalid_final_ten"
+  | "bad_design";
+
+// Explicit fields, not parameter properties: plain Node (scripts) strips types only.
 export class StageError extends Error {
-  constructor(
-    public code:
-      | "round_not_closed"
-      | "already_confirmed"
-      | "tie_decision_required"
-      | "bad_transition"
-      | "no_public_round"
-      | "invalid_final_ten"
-      | "bad_design",
-    public problems: FinalTenProblem[] = [],
-  ) {
+  code: StageErrorCode;
+  problems: FinalTenProblem[];
+  constructor(code: StageErrorCode, problems: FinalTenProblem[] = []) {
     super(code);
+    this.code = code;
+    this.problems = problems;
   }
 }
 
@@ -256,25 +260,34 @@ export type PublicEntryCard = {
 };
 
 export async function publicEntries(db: Db, publicRoundId: string): Promise<PublicEntryCard[]> {
-  return db
-    .select({
-      entryId: publicEntry.id,
-      designId: design.id,
-      slug: design.slug,
-      title: design.title,
-      line: design.line,
-      tags: design.tags,
-      printMethod: design.printMethod,
-      colourwayName: colourway.name,
-      imageUrl: colourway.imageUrl,
-      thumbUrl: colourway.thumbUrl,
-      blurDataUrl: colourway.blurDataUrl,
-    })
-    .from(publicEntry)
-    .innerJoin(design, eq(design.id, publicEntry.designId))
-    .innerJoin(colourway, eq(colourway.id, publicEntry.colourwayId))
-    .where(eq(publicEntry.publicRoundId, publicRoundId))
-    .orderBy(asc(design.slug));
+  return (
+    db
+      .select({
+        entryId: publicEntry.id,
+        designId: design.id,
+        slug: design.slug,
+        title: design.title,
+        line: design.line,
+        tags: design.tags,
+        printMethod: design.printMethod,
+        colourwayName: sql<string>`coalesce(${colourway.name}, '')`,
+        imageUrl: sql<string>`coalesce(${colourway.imageUrl}, '')`,
+        thumbUrl: sql<string>`coalesce(${colourway.thumbUrl}, '')`,
+        blurDataUrl: colourway.blurDataUrl,
+      })
+      .from(publicEntry)
+      .innerJoin(design, eq(design.id, publicEntry.designId))
+      // The entry's chosen colourway, else the design's first one. A left join: an entry must
+      // never drop out of the vote or the results for want of an image.
+      .leftJoin(
+        colourway,
+        sql`${colourway.id} = coalesce(${publicEntry.colourwayId}, (
+        select c2.id from "colourway" c2 where c2.design_id = "design"."id"
+        order by c2.sort_order limit 1))`,
+      )
+      .where(eq(publicEntry.publicRoundId, publicRoundId))
+      .orderBy(asc(design.slug))
+  );
 }
 
 export type PublicResults = {

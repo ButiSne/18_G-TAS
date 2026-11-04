@@ -1,4 +1,4 @@
-import { type PrintMethod, slotFor } from "./print-methods";
+import { type PrintMethod, slotFor } from "./print-methods.ts";
 
 // The market test runs ten designs: five sublimation, and five shared across the
 // other print methods (CLAUDE.md §0.1.3). Sublimation gets its own half because it

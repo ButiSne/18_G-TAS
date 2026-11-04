@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { startTransition, useActionState } from "react";
 import { getMessages } from "@/src/lib/messages";
 
 const t = getMessages();
@@ -30,7 +30,17 @@ export function ActionForm({
 }) {
   const [state, run, pending] = useActionState(action, null);
   return (
-    <form action={run} className={className}>
+    <form
+      // Submitted by hand, not via the action prop: React 19 resets a form after an action
+      // prop runs, which would wipe the admin's choices when a save is refused (e.g. a
+      // final ten of 4 + 6). This way the choices stay and can simply be corrected.
+      onSubmit={(e) => {
+        e.preventDefault();
+        const data = new FormData(e.currentTarget);
+        startTransition(() => run(data));
+      }}
+      className={className}
+    >
       {children}
       <button type="submit" disabled={pending} className={buttonClassName}>
         {pending ? pendingLabel : state?.ok && okLabel ? okLabel : submit}

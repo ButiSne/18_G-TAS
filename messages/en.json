@@ -274,5 +274,66 @@
       "invalid_final_ten": "The final ten needs exactly 5 sublimation and 5 other designs, each with a print method.",
       "bad_design": "That print method is not on the list."
     }
+  },
+  "vote": {
+    "soonTitle": "Voting opens soon",
+    "soonBody": "18 G-TAS is back, and you get to choose the first drop. Watch our Facebook page and WhatsApp groups for the link.",
+    "closedTitle": "Voting has closed",
+    "closedBody": "Ngiyabonga, Mzansi. Thank you for every swipe. The results are being counted.",
+    "seeResults": "See the results",
+    "introEyebrow": "18 G-TAS · First look",
+    "introTitle": "{count} designs. Nobody has seen them yet.",
+    "introBody": "Swipe right for YEBO, left for CHA. It takes about a minute, and you don’t need an account.",
+    "start": "Let’s go",
+    "starting": "Getting ready…",
+    "privacyNote": "No name, number or email needed.",
+    "privacyLink": "How we keep it fair",
+    "yebo": "YEBO",
+    "cha": "CHA",
+    "undo": "Undo",
+    "zoom": "Zoom",
+    "progress": "{done} / {total}",
+    "hint": "Swipe, or use the buttons",
+    "pickTitle": "Which one’s your number one?",
+    "pickBody": "Tap your favourite of the designs you said YEBO to.",
+    "skip": "Skip",
+    "doneEyebrow": "Your style",
+    "styles": {
+      "street": "Street Neon",
+      "luxe": "Quiet Luxe",
+      "classic": "Kasi Classic",
+      "picky": "Hard to impress"
+    },
+    "styleBody": {
+      "street": "Loud, proud and made for the block. You said YEBO to {liked} of {total}.",
+      "luxe": "Gold, numerals and quiet confidence. You said YEBO to {liked} of {total}.",
+      "classic": "A bit of both worlds, youth and elders. You said YEBO to {liked} of {total}.",
+      "picky": "You said CHA to all {total}. Noted. We’ll keep working."
+    },
+    "yourOne": "Your number one",
+    "share": "Share your style on WhatsApp",
+    "shareText": "My 18 G-TAS style is {style}. 18 G-TAS is back after 18 years. Swipe yours:",
+    "aboutYou": "Tell us about you (optional)",
+    "aboutYouBody": "Anonymous. It helps us see what different ages and places like.",
+    "age": "Age",
+    "province": "Province",
+    "preferNot": "Prefer not to say",
+    "saveAbout": "Save",
+    "savedAbout": "Thank you!",
+    "resultsSoon": "Results drop when voting closes.",
+    "resultsTitle": "The results",
+    "resultsHidden": "Results drop when voting closes. Check back soon.",
+    "resultsLead": "How Mzansi swiped. Thank you for every YEBO and CHA.",
+    "yeboShare": "{pct} YEBO",
+    "errors": {
+      "not_open": "Voting isn’t open right now.",
+      "unknown_entry": "That design isn’t in this vote.",
+      "not_liked": "Choose one you said YEBO to.",
+      "already_voted": "You’ve already chosen your number one in this round. Thank you!",
+      "bot": "We couldn’t confirm you’re not a robot. Please try again.",
+      "session": "Your session expired. Please reload and tap Let’s go again.",
+      "not_ready": "Voting isn’t ready yet.",
+      "network": "No connection. Check your data and try again."
+    }
   }
 }
