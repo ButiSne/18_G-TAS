@@ -47,13 +47,15 @@ export async function peekInvite(
   db: Db,
   token: string,
   now: Date,
-): Promise<{ state: InviteState | "unknown"; name?: string }> {
+): Promise<{ state: InviteState | "unknown"; name?: string; expiresAt?: Date }> {
   const [row] = await db
     .select({ usedAt: invite.usedAt, expiresAt: invite.expiresAt, name: member.name })
     .from(invite)
     .innerJoin(member, eq(member.id, invite.memberId))
     .where(eq(invite.tokenHash, hashToken(token)));
-  return row ? { state: inviteState(row, now), name: row.name } : { state: "unknown" };
+  return row
+    ? { state: inviteState(row, now), name: row.name, expiresAt: row.expiresAt }
+    : { state: "unknown" };
 }
 
 /**

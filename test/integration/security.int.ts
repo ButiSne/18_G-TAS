@@ -127,15 +127,13 @@ describe("retention (90 days after publishing)", () => {
           ref: null,
         },
       ]);
-      await db
-        .insert(schema.vote)
-        .values({
-          publicRoundId: roundId,
-          entryId: entry!.id,
-          deviceHash: "p1",
-          ipHash: "i",
-          ref: "fb",
-        });
+      await db.insert(schema.vote).values({
+        publicRoundId: roundId,
+        entryId: entry!.id,
+        deviceHash: "p1",
+        ipHash: "i",
+        ref: "fb",
+      });
     }
   });
 
