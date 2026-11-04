@@ -5,13 +5,17 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { savePicksAction, submitPicksAction, type PickResult } from "@/app/members/actions";
 import { DesignCard } from "@/src/components/design-card";
+import { PickNoteEditor, SuggestionBox } from "@/src/components/pick-note";
 import { buttonGhost, buttonPrimary } from "@/src/components/team-ui";
 import type { CatalogueDesign } from "@/src/lib/catalogue";
 import { inLine, LINES, type Line } from "@/src/lib/design-line";
 import { fill, getMessages } from "@/src/lib/messages";
+import type { PickNote } from "@/src/lib/team-round";
 
 const t = getMessages();
 const r = t.round;
+const without = <T,>(all: Record<string, T>, key: string) =>
+  Object.fromEntries(Object.entries(all).filter(([k]) => k !== key));
 const errorText = (res: PickResult) =>
   res.ok ? "" : ((r.errors as Record<string, string>)[res.code] ?? r.saveError);
 
@@ -19,22 +23,28 @@ const errorText = (res: PickResult) =>
  * Pick and rank N designs (brief §8): add from the grid, a sticky tray of N slots at the
  * bottom, and a review sheet to reorder (arrow buttons work on touch and keyboard alike),
  * remove and submit. Every change saves to the server, so nothing is lost on a dropped tab.
+ * Each ticked design can carry a comment or suggestion, and the round one free suggestion.
  */
 export function PicksBoard({
   designs,
   roundId,
   picksPerMember,
   initial,
+  initialNotes = {},
+  initialSuggestion = null,
   locked,
 }: {
   designs: CatalogueDesign[];
   roundId: string;
   picksPerMember: number;
   initial: string[];
+  initialNotes?: Record<string, PickNote>;
+  initialSuggestion?: string | null;
   locked: boolean;
 }) {
   const router = useRouter();
   const [ids, setIds] = useState(initial);
+  const [notes, setNotes] = useState(initialNotes);
   const [line, setLine] = useState<Line | null>(null);
   const [sheet, setSheet] = useState(false);
   const [error, setError] = useState("");
@@ -58,7 +68,11 @@ export function PicksBoard({
   };
 
   const toggle = (id: string) => {
-    if (ids.includes(id)) return commit(ids.filter((x) => x !== id));
+    if (ids.includes(id)) {
+      // The server drops the note with the pick; keep the screen in step.
+      setNotes((all) => without(all, id));
+      return commit(ids.filter((x) => x !== id));
+    }
     if (full) return;
     commit([...ids, id]);
     setPulse(ids.length);
@@ -218,56 +232,68 @@ export function PicksBoard({
                 return (
                   <li
                     key={id}
-                    className="flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--card)] p-2"
+                    className="rounded-2xl border border-[var(--line)] bg-[var(--card)] p-2"
                   >
-                    <span className="font-numerals w-6 text-center text-xl text-[var(--accent)]">
-                      {i + 1}
-                    </span>
-                    <span className="relative size-12 shrink-0 overflow-hidden rounded-xl">
-                      <Image
-                        src={d.colourways[0]!.thumbUrl}
-                        alt=""
-                        fill
-                        sizes="48px"
-                        className="object-cover"
-                      />
-                    </span>
-                    {/* Title gets the room on a 360 px phone; Remove is a text button under it. */}
-                    <span className="min-w-0 flex-1">
-                      <span className="line-clamp-2 text-sm leading-tight font-bold">
-                        {d.title}
+                    <div className="flex items-center gap-2">
+                      <span className="font-numerals w-6 text-center text-xl text-[var(--accent)]">
+                        {i + 1}
+                      </span>
+                      <span className="relative size-12 shrink-0 overflow-hidden rounded-xl">
+                        <Image
+                          src={d.colourways[0]!.thumbUrl}
+                          alt=""
+                          fill
+                          sizes="48px"
+                          className="object-cover"
+                        />
+                      </span>
+                      {/* Title gets the room on a 360 px phone; Remove is a text button under it. */}
+                      <span className="min-w-0 flex-1">
+                        <span className="line-clamp-2 text-sm leading-tight font-bold">
+                          {d.title}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => toggle(id)}
+                          aria-label={`${r.remove}: ${d.title}`}
+                          className="-ml-1 min-h-8 px-1 text-xs text-[var(--muted)] underline underline-offset-2"
+                        >
+                          {r.remove}
+                        </button>
                       </span>
                       <button
                         type="button"
-                        onClick={() => toggle(id)}
-                        aria-label={`${r.remove}: ${d.title}`}
-                        className="-ml-1 min-h-8 px-1 text-xs text-[var(--muted)] underline underline-offset-2"
+                        onClick={() => move(i, -1)}
+                        disabled={i === 0}
+                        aria-label={`${r.up}: ${d.title}`}
+                        className="grid size-11 place-items-center rounded-full border border-[var(--line)] disabled:opacity-30"
                       >
-                        {r.remove}
+                        ↑
                       </button>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => move(i, -1)}
-                      disabled={i === 0}
-                      aria-label={`${r.up}: ${d.title}`}
-                      className="grid size-11 place-items-center rounded-full border border-[var(--line)] disabled:opacity-30"
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => move(i, 1)}
-                      disabled={i === ids.length - 1}
-                      aria-label={`${r.down}: ${d.title}`}
-                      className="grid size-11 place-items-center rounded-full border border-[var(--line)] disabled:opacity-30"
-                    >
-                      ↓
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => move(i, 1)}
+                        disabled={i === ids.length - 1}
+                        aria-label={`${r.down}: ${d.title}`}
+                        className="grid size-11 place-items-center rounded-full border border-[var(--line)] disabled:opacity-30"
+                      >
+                        ↓
+                      </button>
+                    </div>
+                    <PickNoteEditor
+                      roundId={roundId}
+                      designId={id}
+                      title={d.title}
+                      value={notes[id]}
+                      onSaved={(next) =>
+                        setNotes((all) => (next ? { ...all, [id]: next } : without(all, id)))
+                      }
+                    />
                   </li>
                 );
               })}
             </ol>
+            <SuggestionBox roundId={roundId} initial={initialSuggestion} />
             <button
               type="button"
               onClick={submit}

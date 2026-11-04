@@ -145,6 +145,7 @@
     "collection": "Collection",
     "colour": "Tee colour",
     "print": "Print method",
+    "placement": "Placement",
     "search": "Search",
     "searchPlaceholder": "e.g. Kasi, XVIII, pixel",
     "any": "Any",
@@ -152,13 +153,18 @@
     "reset": "Reset",
     "shuffle": "Shuffle",
     "empty": "No designs match these filters.",
-    "back": "All designs",
+    "back": "Back",
     "colourways": "Colourways",
     "details": "Close-ups",
     "zoom": "Open full size",
     "line": "Line",
     "printNotSet": "Not set yet",
-    "colourwayOf": "{design}, {colourway}"
+    "colourwayOf": "{design}, {colourway}",
+    "front": "Front",
+    "backView": "Back view",
+    "flip": "See the back",
+    "teeColour": "Tee colour",
+    "product": "Product"
   },
   "round": {
     "title": "Your picks",
@@ -181,7 +187,7 @@
     "review": "Review",
     "reviewSubmit": "Review & submit",
     "sheetTitle": "Your ranking",
-    "sheetHint": "Number 1 is your favourite. Use the arrows to change the order.",
+    "sheetHint": "Number 1 is your favourite. Use the arrows to change the order, and add a comment or suggestion to any pick.",
     "up": "Move up",
     "down": "Move down",
     "remove": "Remove",
@@ -190,6 +196,29 @@
     "submitting": "Submitting…",
     "submitConfirm": "Submit your {n} picks? They lock after this, and only the admin can unlock them.",
     "needMore": "Pick {left} more to submit.",
+    "noteAdd": "Add a comment or suggestion",
+    "noteEdit": "Edit note",
+    "noteKinds": {
+      "comment": "Comment",
+      "suggestion": "Suggestion"
+    },
+    "notePlaceholder": {
+      "comment": "What makes this one work for you?",
+      "suggestion": "What would you change? A colour, the placement, the print…"
+    },
+    "noteHint": "Private until the round closes. {left} characters left.",
+    "noteSave": "Save",
+    "noteSaved": "Saved",
+    "noteDelete": "Delete note",
+    "noteCancel": "Cancel",
+    "suggestionTitle": "Anything else for the team?",
+    "suggestionHint": "Optional. An idea for the drop, a gap in the range, a colour we’re missing. Private until the round closes.",
+    "suggestionPlaceholder": "Your suggestion",
+    "suggestionSave": "Save suggestion",
+    "notesCount": "Team notes ({count})",
+    "teamNotes": "What the team said",
+    "teamSuggestions": "Suggestions for the drop",
+    "yourNotes": "Your notes",
     "locked": "Submitted. Your picks are locked.",
     "saveError": "Could not save. Check your connection and try again.",
     "errors": {
@@ -200,7 +229,9 @@
       "unknown_design": "One of those designs is no longer available.",
       "no_round": "There is no team round yet.",
       "not_draft": "The round has already been opened.",
-      "bad_settings": "Check the settings: 1–20 picks, shortlist 10–40, at least one person."
+      "bad_settings": "Check the settings: 1–20 picks, shortlist 10–40, at least one person.",
+      "not_picked": "You can only add a note to a design you ticked.",
+      "too_long": "That note is too long. Keep it under the limit."
     },
     "resultsTitle": "Team results",
     "resultsHidden": "Results open when everyone has submitted, so nobody is swayed by anyone else.",

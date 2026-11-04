@@ -232,7 +232,7 @@ describe("final ten", () => {
     for (const [i, id] of ids.entries()) {
       await updateDesign(db, {
         designId: id,
-        printMethod: i < 4 ? "sublimation" : "dtf",
+        printMethod: i < 4 ? "full-sublimation" : "dtf",
         line: "EITEEN",
         hidden: false,
         actorId: admin,
@@ -243,7 +243,7 @@ describe("final ten", () => {
     ).toBe("invalid_final_ten"); // 4 + 6
     await updateDesign(db, {
       designId: ids[4]!,
-      printMethod: "sublimation",
+      printMethod: "full-sublimation",
       line: "EITEEN",
       hidden: false,
       actorId: admin,

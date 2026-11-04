@@ -15,6 +15,15 @@ export type ImageStore = {
     body: Buffer,
     contentType: string,
   ): Promise<{ url: string; uploaded: boolean }>;
+  /**
+   * For fixed pathnames chosen by someone else (the design pack): skips the upload when a
+   * file of the same size is already there, and overwrites it when the size differs.
+   */
+  sync(
+    pathname: string,
+    body: Buffer,
+    contentType: string,
+  ): Promise<{ url: string; uploaded: boolean }>;
 };
 
 export function localStore(publicDir = "public", prefix = "_local"): ImageStore {
@@ -31,6 +40,18 @@ export function localStore(publicDir = "public", prefix = "_local"): ImageStore 
         await writeFile(file, body);
         return { url, uploaded: true };
       }
+    },
+    async sync(pathname, body) {
+      const file = join(publicDir, prefix, pathname);
+      const url = `/${prefix}/${pathname}`;
+      const size = await stat(file).then(
+        (s) => s.size,
+        () => null,
+      );
+      if (size === body.length) return { url, uploaded: false };
+      await mkdir(dirname(file), { recursive: true });
+      await writeFile(file, body);
+      return { url, uploaded: true };
     },
   };
 }
@@ -52,6 +73,24 @@ export function blobStore(token: string): ImageStore {
         contentType,
         addRandomSuffix: false,
         cacheControlMaxAge: 60 * 60 * 24 * 365, // pathnames change when content does
+      });
+      return { url: blob.url, uploaded: true };
+    },
+    async sync(pathname, body, contentType) {
+      try {
+        const existing = await head(pathname, { token });
+        if (existing.size === body.length) return { url: existing.url, uploaded: false };
+      } catch (error) {
+        if (!(error instanceof BlobNotFoundError)) throw error;
+      }
+      const blob = await put(pathname, body, {
+        access: "public",
+        token,
+        contentType,
+        addRandomSuffix: false,
+        allowOverwrite: true,
+        // The pathname stays the same when the pack updates an image, so caches must expire.
+        cacheControlMaxAge: 60 * 60 * 24,
       });
       return { url: blob.url, uploaded: true };
     },

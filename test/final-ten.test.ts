@@ -12,35 +12,37 @@ const many = (prefix: string, n: number, m: PrintMethod) =>
 describe("validateFinalTen (CLAUDE.md §0.1.3: 5 sublimation + 5 other)", () => {
   it("accepts 5 sublimation and 5 across other methods", () => {
     const chosen = [
-      ...many("s", 5, "sublimation"),
+      ...many("s", 5, "full-sublimation"),
       ...many("d", 3, "dtf"),
-      ...many("e", 2, "embroidery"),
+      ...many("e", 2, "embroidery-or-dtf"),
     ];
     expect(validateFinalTen(chosen)).toEqual([]);
   });
 
   it("does not require any particular split among the other methods", () => {
-    expect(validateFinalTen([...many("s", 5, "sublimation"), ...many("v", 5, "vinyl")])).toEqual(
-      [],
-    );
+    expect(
+      validateFinalTen([...many("s", 5, "full-sublimation"), ...many("v", 5, "velvet-flock")]),
+    ).toEqual([]);
   });
 
   it("rejects 6 sublimation and 4 other", () => {
-    const kinds = validateFinalTen([...many("s", 6, "sublimation"), ...many("d", 4, "dtf")]).map(
-      (p) => p.kind,
-    );
+    const kinds = validateFinalTen([
+      ...many("s", 6, "full-sublimation"),
+      ...many("d", 4, "dtf"),
+    ]).map((p) => p.kind);
     expect(kinds).toEqual(["wrong_sublimation", "wrong_other"]);
   });
 
   it("rejects fewer than ten", () => {
-    const kinds = validateFinalTen([...many("s", 5, "sublimation"), ...many("d", 4, "dtf")]).map(
-      (p) => p.kind,
-    );
+    const kinds = validateFinalTen([
+      ...many("s", 5, "full-sublimation"),
+      ...many("d", 4, "dtf"),
+    ]).map((p) => p.kind);
     expect(kinds).toContain("wrong_total");
   });
 
   it("refuses a design with no print method rather than guessing its half", () => {
-    const chosen = [...many("s", 5, "sublimation"), ...many("d", 4, "dtf"), c("x", null)];
+    const chosen = [...many("s", 5, "full-sublimation"), ...many("d", 4, "dtf"), c("x", null)];
     expect(validateFinalTen(chosen)).toContainEqual({
       kind: "missing_print_method",
       designId: "x",
@@ -48,7 +50,7 @@ describe("validateFinalTen (CLAUDE.md §0.1.3: 5 sublimation + 5 other)", () => 
   });
 
   it("rejects the same design twice", () => {
-    const chosen = [...many("s", 5, "sublimation"), ...many("d", 4, "dtf"), c("d0", "dtf")];
+    const chosen = [...many("s", 5, "full-sublimation"), ...many("d", 4, "dtf"), c("d0", "dtf")];
     expect(validateFinalTen(chosen)).toContainEqual({ kind: "duplicate_design", designId: "d0" });
   });
 });
@@ -56,7 +58,7 @@ describe("validateFinalTen (CLAUDE.md §0.1.3: 5 sublimation + 5 other)", () => 
 describe("shortlistCoverage (CLAUDE.md §0.4)", () => {
   it("warns when the shortlist cannot fill the sublimation half", () => {
     const cov = shortlistCoverage([
-      ...many("s", 4, "sublimation"),
+      ...many("s", 4, "full-sublimation"),
       ...many("d", 8, "dtf"),
       c("x", null),
     ]);

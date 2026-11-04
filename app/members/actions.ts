@@ -8,7 +8,15 @@ import { getDb } from "@/src/db/server";
 import { SESSION_COOKIE } from "@/src/lib/auth/cookie";
 import { requireMember } from "@/src/lib/auth/session";
 import { endSession } from "@/src/lib/auth/store";
-import { RoundError, savePicks, submitPicks } from "@/src/lib/team-round";
+import {
+  NOTE_MAX,
+  RoundError,
+  savePickNote,
+  savePicks,
+  saveSuggestion,
+  SUGGESTION_MAX,
+  submitPicks,
+} from "@/src/lib/team-round";
 
 export async function signOutAction() {
   const jar = await cookies();
@@ -45,6 +53,38 @@ export async function savePicksAction(roundId: string, designIds: string[]): Pro
       designIds: picks.data,
       now: new Date(),
     });
+    return { ok: true };
+  });
+}
+
+const noteInput = z.object({
+  roundId: z.uuid(),
+  designId: z.uuid(),
+  // Counted again after trimming in savePickNote; this only stops oversized payloads.
+  note: z.string().max(NOTE_MAX * 4),
+  kind: z.enum(["comment", "suggestion"]),
+});
+
+/** A comment or suggestion on a design the member ticked. Empty text deletes it. */
+export async function savePickNoteAction(input: z.input<typeof noteInput>): Promise<PickResult> {
+  return run(async (memberId) => {
+    const parsed = noteInput.safeParse(input);
+    if (!parsed.success) return { ok: false, code: "too_long" };
+    await savePickNote(getDb()!, { ...parsed.data, memberId, now: new Date() });
+    return { ok: true };
+  });
+}
+
+export async function saveSuggestionAction(roundId: string, text: string): Promise<PickResult> {
+  return run(async (memberId) => {
+    const round = z.uuid().safeParse(roundId);
+    const body = z
+      .string()
+      .max(SUGGESTION_MAX * 4)
+      .safeParse(text);
+    if (!round.success) return { ok: false, code: "no_round" };
+    if (!body.success) return { ok: false, code: "too_long" };
+    await saveSuggestion(getDb()!, { roundId: round.data, memberId, text: body.data });
     return { ok: true };
   });
 }

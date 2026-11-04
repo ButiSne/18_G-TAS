@@ -13,6 +13,7 @@ test-results/
 # display images go to Vercel Blob and print-master paths are recorded at ingest.
 archive/
 ingest-report.md
+ingest-pack-report.md
 # Display images from `pnpm ingest --store=local` (Docker development without Blob).
 public/_local/
 # Sign-in link written by `pnpm invite` for the first admin. Send it, then delete it.
