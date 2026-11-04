@@ -99,6 +99,12 @@ export default async function FinalTen() {
         <section className="mt-10">
           <h2 className="font-youth text-2xl">{a.handoffTitle}</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">{a.handoffBody}</p>
+          <Link
+            href="/admin/quotes"
+            className="mt-2 inline-flex min-h-11 items-center text-sm font-bold underline"
+          >
+            {a.nav.quotes} →
+          </Link>
           <ol className="mt-4 space-y-3">
             {handoff.map((h) => (
               <li key={h.designId} className="rounded-2xl border border-[var(--line)] p-3">

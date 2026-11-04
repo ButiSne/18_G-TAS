@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { fill, getMessages } from "@/src/lib/messages";
-import { LEGAL_LINKS } from "@/src/lib/site";
+import { CONTACT_WHATSAPP, LEGAL_LINKS, whatsappChatUrl } from "@/src/lib/site";
 
 const t = getMessages();
 
@@ -29,6 +29,19 @@ export function SiteFooter() {
             ))}
           </ul>
         </nav>
+
+        <p className="mt-2 max-w-xl text-xs leading-relaxed text-[var(--muted)]">
+          {f.groupNote.split("{number}")[0]}
+          <a
+            href={whatsappChatUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="whitespace-nowrap text-[var(--fg)] underline underline-offset-2"
+          >
+            {CONTACT_WHATSAPP}
+          </a>
+          {f.groupNote.split("{number}")[1]}
+        </p>
 
         <div className="mt-8 space-y-2 border-t border-[var(--line)] pt-6 text-xs leading-relaxed text-[var(--muted)]">
           <p>{fill(f.copyright, { year: new Date().getFullYear() })}</p>

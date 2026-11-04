@@ -57,6 +57,9 @@ export default async function Admin() {
             {a.nav.final}
           </Link>
         )}
+        <Link href="/admin/quotes" className={buttonGhost}>
+          {a.nav.quotes}
+        </Link>
       </nav>
 
       <section className="mt-8 rounded-3xl border border-[var(--line)] bg-[var(--card)] p-5">

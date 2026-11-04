@@ -9,6 +9,7 @@ import {
   SITE_URL,
   whatsappChatUrl,
   whatsappShareUrl,
+  WHATSAPP_GROUP_URL,
 } from "@/src/lib/site";
 import { normaliseRef } from "@/src/lib/tally";
 
@@ -38,8 +39,10 @@ describe("footer legal links", () => {
     }
   });
 
-  it("open a WhatsApp chat with the brand for 'Contact us'", () => {
-    expect(LEGAL_LINKS.find((l) => l.key === "contact")?.href).toBe("https://wa.me/27746730051");
+  it("open the brand's WhatsApp group for 'Contact us'", () => {
+    const href = LEGAL_LINKS.find((l) => l.key === "contact")?.href;
+    expect(new URL(href!).origin).toBe("https://chat.whatsapp.com");
+    expect(href).toBe(WHATSAPP_GROUP_URL);
   });
 
   it("have a label each, and leave out competition rules (no prize draw)", () => {

@@ -124,7 +124,13 @@ export default function Privacy() {
 
       <h2 id="contact">Contact us</h2>
       <p>
-        For privacy questions or requests: <ContactEmail />.
+        For privacy questions or requests, message us privately: <ContactEmail />.
+      </p>
+      <p>
+        <strong>Our WhatsApp group</strong> (&ldquo;Contact us&rdquo; at the bottom of every page)
+        is separate from the vote. Voting never needs it. If you join, WhatsApp shows your name and
+        number to the group&rsquo;s admins and members, so please don&rsquo;t post personal details
+        there. If you are under 18, ask a parent or guardian before you join.
       </p>
     </>
   );
