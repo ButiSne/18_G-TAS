@@ -15,6 +15,13 @@ export const TEE_COLOURS = [
   "Purple",
   "Olive",
   "Sand",
+  "Blue",
+  "Teal",
+  "Mint",
+  "Red",
+  "Coral",
+  "Gold",
+  "Pink",
 ] as const;
 export type TeeColour = (typeof TEE_COLOURS)[number];
 
@@ -44,7 +51,7 @@ const NAME_TO_TEE: Record<string, TeeColour> = {
  * 3 Nov 2026 from mockups whose names state the tee colour. White renders as a shaded
  * (208, 207, 203), so ideal swatches would misread it as cream.
  */
-const SWATCHES: Record<TeeColour, [number, number, number]> = {
+const SWATCHES: Partial<Record<TeeColour, [number, number, number]>> = {
   Black: [14, 14, 14],
   White: [208, 207, 203],
   Cream: [203, 196, 178],
@@ -100,8 +107,8 @@ export function teeColourFromName(tokens: string[]): TeeColour | null {
 export function nearestTeeColour(rgb: Rgb): TeeColour | null {
   let best: TeeColour | null = null;
   let bestDistance = MAX_DELTA_E;
-  for (const name of TEE_COLOURS) {
-    const d = deltaE(rgb, SWATCHES[name]);
+  for (const [name, swatch] of Object.entries(SWATCHES) as [TeeColour, Rgb][]) {
+    const d = deltaE(rgb, swatch);
     if (d < bestDistance) {
       bestDistance = d;
       best = name;
@@ -124,4 +131,69 @@ export function nameLetteredColourways(
     if (!c.letter || !c.teeColour) return c.name;
     return (counts.get(c.teeColour) ?? 0) > 1 ? `${c.teeColour} (${c.letter})` : c.teeColour;
   });
+}
+
+/**
+ * Reference tee colours for the design pack's hex values (true fabric colours, not the
+ * shaded mockup renders that SWATCHES measures). Several references per name, so that a
+ * charcoal and a light grey both land on Grey.
+ */
+const HEX_REFERENCES: Record<TeeColour, string[]> = {
+  Black: ["#111111", "#0D0D0D"],
+  White: ["#F4F3EF", "#FFFFFF", "#E5E5E2"],
+  Cream: ["#F3EDE2", "#EFE6D2", "#E9E3D6"],
+  Grey: ["#3B3F47", "#666860"],
+  Navy: ["#141B2D", "#1C2C4C", "#0C1F3F"],
+  Green: ["#0F3D26", "#0B5A3C"],
+  Maroon: ["#4A0F1C", "#5A1A22"],
+  Purple: ["#2B1C40", "#4B1D7A"],
+  Olive: ["#4B5320"],
+  Sand: ["#D9C8A6"],
+  Blue: ["#2C6E9E", "#1F3A8A", "#1D4FD8", "#002395"],
+  Teal: ["#13333D", "#073B4C"],
+  Mint: ["#A9D9C3"],
+  Red: ["#AF211A", "#DE3831"],
+  Coral: ["#EF8A6E", "#FF6B35"],
+  Gold: ["#FFB612", "#C9A24A"],
+  Pink: ["#FF3EA5"],
+};
+
+/** "#0d0d0d" → [13, 13, 13]; null for anything that is not a 6-digit hex colour. */
+export function parseHex(hex: string): Rgb | null {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return null;
+  const n = Number.parseInt(m[1]!, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+/** "#0d0d0d" → "#0D0D0D", so the same colour is stored one way. */
+export const normaliseHex = (hex: string) => {
+  const rgb = parseHex(hex);
+  return rgb
+    ? `#${rgb
+        .map((c) => c.toString(16).padStart(2, "0"))
+        .join("")
+        .toUpperCase()}`
+    : null;
+};
+
+/**
+ * The filter colour for a stated tee hex: always the nearest name, because the pack states
+ * the colour outright (unlike a sampled mockup, nothing here can be "printed over").
+ */
+export function teeColourFromHex(hex: string): TeeColour | null {
+  const rgb = parseHex(hex);
+  if (!rgb) return null;
+  let best: TeeColour | null = null;
+  let bestDistance = Infinity;
+  for (const [name, refs] of Object.entries(HEX_REFERENCES) as [TeeColour, string[]][]) {
+    for (const ref of refs) {
+      const d = deltaE(rgb, parseHex(ref)!);
+      if (d < bestDistance) {
+        bestDistance = d;
+        best = name;
+      }
+    }
+  }
+  return best;
 }

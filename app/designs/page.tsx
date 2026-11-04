@@ -13,7 +13,14 @@ import {
 } from "@/src/lib/catalogue";
 import { LINES } from "@/src/lib/design-line";
 import { fill, getMessages } from "@/src/lib/messages";
-import { PRINT_METHOD_LABELS, PRINT_METHODS } from "@/src/lib/print-methods";
+import {
+  PLACEMENT_LABELS,
+  PLACEMENTS,
+  PRINT_METHOD_LABELS,
+  PRINT_METHODS,
+  type Placement,
+  type PrintMethod,
+} from "@/src/lib/print-methods";
 import { TEE_COLOURS } from "@/src/ingest/tee-colour";
 
 const t = getMessages();
@@ -37,6 +44,7 @@ export default async function Designs({ searchParams }: Props) {
     all.some((d) => d.colourways.some((cw) => cw.teeColour === col)),
   );
   const prints = PRINT_METHODS.filter((p) => all.some((d) => d.printMethod === p));
+  const placements = PLACEMENTS.filter((p) => all.some((d) => d.placement === p));
 
   return (
     <>
@@ -62,7 +70,13 @@ export default async function Designs({ searchParams }: Props) {
         </Chip>
       </nav>
 
-      <FilterPanel filters={filters} collections={collections} colours={colours} prints={prints} />
+      <FilterPanel
+        filters={filters}
+        collections={collections}
+        colours={colours}
+        prints={prints}
+        placements={placements}
+      />
 
       {shown.length === 0 ? (
         <div className="mt-10 rounded-2xl border border-dashed border-[var(--line)] p-8 text-center">
@@ -110,13 +124,17 @@ function FilterPanel({
   collections,
   colours,
   prints,
+  placements,
 }: {
   filters: CatalogueFilters;
   collections: { slug: string; title: string }[];
   colours: readonly string[];
-  prints: readonly string[];
+  prints: readonly PrintMethod[];
+  placements: readonly Placement[];
 }) {
-  const open = Boolean(filters.collection || filters.colour || filters.print || filters.q);
+  const open = Boolean(
+    filters.collection || filters.colour || filters.print || filters.placement || filters.q,
+  );
   const field =
     "mt-1 block min-h-12 w-full rounded-xl border border-[var(--line)] bg-[var(--card)] px-3";
   return (
@@ -162,7 +180,20 @@ function FilterPanel({
               <option value="">{c.any}</option>
               {prints.map((p) => (
                 <option key={p} value={p}>
-                  {PRINT_METHOD_LABELS[p as keyof typeof PRINT_METHOD_LABELS]}
+                  {PRINT_METHOD_LABELS[p]}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {placements.length > 0 && (
+          <label className="text-sm">
+            {c.placement}
+            <select name="placement" defaultValue={filters.placement ?? ""} className={field}>
+              <option value="">{c.any}</option>
+              {placements.map((p) => (
+                <option key={p} value={p}>
+                  {PLACEMENT_LABELS[p]}
                 </option>
               ))}
             </select>

@@ -14,6 +14,7 @@ const cw = (teeColour: string | null) => ({
   thumbUrl: "x",
   blurDataUrl: null,
   teeColour,
+  teeHex: null,
   views: [],
 });
 
@@ -24,6 +25,7 @@ const d = (over: Partial<CatalogueDesign>): CatalogueDesign => ({
   line: "EITEEN",
   tags: [],
   printMethod: null,
+  placement: null,
   collection: { slug: "round-10", title: "Round 10" },
   colourways: [cw("Black")],
   ...over,
@@ -31,7 +33,13 @@ const d = (over: Partial<CatalogueDesign>): CatalogueDesign => ({
 
 const designs = [
   d({ slug: "kasi-halo", title: "Kasi Halo", colourways: [cw("Black"), cw("White")] }),
-  d({ slug: "xviii-chest", title: "XVIII Chest", line: "G-TAS", printMethod: "dtf" }),
+  d({
+    slug: "xviii-chest",
+    title: "XVIII Chest",
+    line: "G-TAS",
+    printMethod: "dtf",
+    placement: "left-chest",
+  }),
   d({
     slug: "youth-elders",
     title: "Youth Elders",
@@ -57,12 +65,24 @@ describe("parseFilters", () => {
         q: "  kasi ",
         seed: "ab12",
         collection: "round-10",
+        print: "full-sublimation",
+        placement: "all-over",
       }),
-    ).toEqual({ line: "G-TAS", colour: "Black", q: "kasi", seed: "ab12", collection: "round-10" });
+    ).toEqual({
+      line: "G-TAS",
+      colour: "Black",
+      q: "kasi",
+      seed: "ab12",
+      collection: "round-10",
+      print: "full-sublimation",
+      placement: "all-over",
+    });
     expect(
       parseFilters({
         line: "ELDERS",
-        colour: "Pink",
+        colour: "Turquoise",
+        print: "screen_print",
+        placement: "sleeve",
         collection: "../etc",
         seed: "<script>",
         q: "",
@@ -94,6 +114,7 @@ describe("applyFilters", () => {
       "square-monogram",
     ]);
     expect(slugs(applyFilters(designs, { print: "dtf" }))).toEqual(["xviii-chest"]);
+    expect(slugs(applyFilters(designs, { placement: "left-chest" }))).toEqual(["xviii-chest"]);
     expect(slugs(applyFilters(designs, { q: "xviii" }))).toEqual(["xviii-chest"]);
     expect(slugs(applyFilters(designs, { q: "crossover" }))).toEqual([
       "youth-elders",

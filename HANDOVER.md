@@ -226,6 +226,26 @@ One PR per step, each branched from fresh `main`. Keep every PR green. Tick the 
 
 ### Step 3: ingest (`scripts/ingest.ts`, run locally)
 
+> **Now replaced by the Blob-ready design pack (4 Nov 2026).** The pack in
+> `archive/ALL DESIGN IMAGES/18GTAS_Blob_Ready/18GTAS_Blob_Ready/` has a `manifest.json` that
+> states range, collection, print method, placement, tee colour and status for every image, so
+> no filename guessing is needed. `pnpm ingest:pack` loads it (`scripts/ingest-pack.ts`):
+>
+> ```powershell
+> pnpm ingest:pack --dry-run   # report only: ingest-pack-report.md
+> pnpm ingest:pack             # Blob at the manifest's own pathnames (18gtas/designs/…), then DB
+> ```
+>
+> - One design per `family` and one colourway per front record. A back view attaches to its front
+>   (Front/Back toggle on the design page, flip button on the card).
+> - Superseded families are kept but hidden.
+> - It retires the designs from the old archive ingest (family keys containing `/`): deleted
+>   when nothing references them, hidden when a past round does.
+> - A second run uploads and changes nothing. Admin edits to title, line and print method
+>   survive a re-run.
+> - Print methods are now the pack's eight (`src/lib/print-methods.ts`). Full and cotton
+>   sublimation fill the sublimation five.
+
 > **Built (3 Nov 2026, branch `feat/ingest`).** How to run it:
 >
 > ```powershell

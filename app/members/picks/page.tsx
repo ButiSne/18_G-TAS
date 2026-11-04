@@ -32,6 +32,8 @@ export default async function Picks() {
         roundId={round.id}
         picksPerMember={round.picksPerMember}
         initial={mine.designIds}
+        initialNotes={mine.notes}
+        initialSuggestion={mine.suggestion}
         locked={Boolean(mine.submittedAt)}
       />
     </div>

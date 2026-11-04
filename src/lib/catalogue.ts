@@ -5,9 +5,10 @@
 import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { createDb } from "../db/client.ts";
-import { collection, colourway, design } from "../db/schema.ts";
+import { collection, colourway, design, type ColourwayView } from "../db/schema.ts";
 import { inLine, LINES, type Line } from "./design-line.ts";
 import { TEE_COLOURS, type TeeColour } from "../ingest/tee-colour.ts";
+import { PLACEMENTS, PRINT_METHODS, type Placement } from "./print-methods.ts";
 
 type Db = ReturnType<typeof createDb>;
 
@@ -18,7 +19,9 @@ export type CatalogueColourway = {
   thumbUrl: string;
   blurDataUrl: string | null;
   teeColour: string | null;
-  views: { imageUrl: string; thumbUrl: string }[];
+  /** The exact fabric colour from the design pack, when known. */
+  teeHex: string | null;
+  views: ColourwayView[];
 };
 
 export type CatalogueDesign = {
@@ -28,6 +31,7 @@ export type CatalogueDesign = {
   line: Line;
   tags: string[];
   printMethod: string | null;
+  placement: string | null;
   collection: { slug: string; title: string } | null;
   colourways: CatalogueColourway[];
 };
@@ -41,6 +45,7 @@ export async function loadCatalogue(db: Db): Promise<CatalogueDesign[]> {
       line: design.line,
       tags: design.tags,
       printMethod: design.printMethod,
+      placement: design.placement,
       collectionSlug: collection.slug,
       collectionTitle: collection.title,
       collectionOrder: collection.sortOrder,
@@ -58,6 +63,7 @@ export async function loadCatalogue(db: Db): Promise<CatalogueDesign[]> {
       thumbUrl: colourway.thumbUrl,
       blurDataUrl: colourway.blurDataUrl,
       teeColour: colourway.teeColour,
+      teeHex: colourway.teeHex,
       views: colourway.views,
     })
     .from(colourway)
@@ -75,6 +81,7 @@ export async function loadCatalogue(db: Db): Promise<CatalogueDesign[]> {
       line: d.line,
       tags: d.tags,
       printMethod: d.printMethod,
+      placement: d.placement,
       collection: d.collectionSlug ? { slug: d.collectionSlug, title: d.collectionTitle! } : null,
       colourways: byDesign.get(d.id) ?? [],
     }))
@@ -88,6 +95,7 @@ export type CatalogueFilters = {
   collection?: string;
   colour?: TeeColour;
   print?: string;
+  placement?: Placement;
   q?: string;
   seed?: string;
 };
@@ -105,11 +113,10 @@ export function parseFilters(
   if (col.success) out.collection = col.data;
   const colour = z.enum(TEE_COLOURS).safeParse(first(params.colour));
   if (colour.success) out.colour = colour.data;
-  const print = z
-    .string()
-    .regex(/^[a-z_]{1,30}$/)
-    .safeParse(first(params.print));
+  const print = z.enum(PRINT_METHODS).safeParse(first(params.print));
   if (print.success) out.print = print.data;
+  const placement = z.enum(PLACEMENTS).safeParse(first(params.placement));
+  if (placement.success) out.placement = placement.data;
   const q = z.string().trim().min(1).max(60).safeParse(first(params.q));
   if (q.success) out.q = q.data;
   const seed = z
@@ -128,6 +135,7 @@ export function applyFilters(designs: CatalogueDesign[], f: CatalogueFilters): C
       (!f.collection || d.collection?.slug === f.collection) &&
       (!f.colour || d.colourways.some((c) => c.teeColour === f.colour)) &&
       (!f.print || d.printMethod === f.print) &&
+      (!f.placement || d.placement === f.placement) &&
       (!q || d.title.toLowerCase().includes(q) || d.tags.some((t) => t.toLowerCase().includes(q))),
   );
   return f.seed ? seededShuffle(kept, f.seed) : kept;
@@ -137,7 +145,7 @@ export function applyFilters(designs: CatalogueDesign[], f: CatalogueFilters): C
 export function catalogueHref(f: CatalogueFilters, change: Partial<CatalogueFilters> = {}): string {
   const merged = { ...f, ...change };
   const params = new URLSearchParams();
-  for (const key of ["line", "collection", "colour", "print", "q", "seed"] as const) {
+  for (const key of ["line", "collection", "colour", "print", "placement", "q", "seed"] as const) {
     const v = merged[key];
     if (v) params.set(key, v);
   }
@@ -184,7 +192,15 @@ export const TEE_SWATCH: Record<TeeColour, string> = {
   Purple: "#3a2156",
   Olive: "#555a26",
   Sand: "#c4ad86",
+  Blue: "#2c5a9e",
+  Teal: "#14424d",
+  Mint: "#a9d9c3",
+  Red: "#b8261d",
+  Coral: "#f07a55",
+  Gold: "#e0ad2c",
+  Pink: "#ff3ea5",
 };
 
-export const swatchFor = (teeColour: string | null) =>
-  (teeColour && TEE_SWATCH[teeColour as TeeColour]) || "#888888";
+/** The exact fabric colour when the design pack gives one, else the filter colour. */
+export const swatchFor = (teeColour: string | null, teeHex?: string | null) =>
+  teeHex || (teeColour && TEE_SWATCH[teeColour as TeeColour]) || "#888888";
