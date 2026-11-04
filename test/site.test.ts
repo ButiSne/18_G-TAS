@@ -2,7 +2,14 @@ import { existsSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import en from "@/messages/en.json";
 import { fill } from "@/src/lib/messages";
-import { LEGAL_LINKS, SITE_URL, whatsappChatUrl, whatsappShareUrl } from "@/src/lib/site";
+import {
+  LEGAL_LINKS,
+  SHARE_IMAGE,
+  SHARE_VERSION,
+  SITE_URL,
+  whatsappChatUrl,
+  whatsappShareUrl,
+} from "@/src/lib/site";
 import { normaliseRef } from "@/src/lib/tally";
 
 describe("whatsappShareUrl", () => {
@@ -10,9 +17,16 @@ describe("whatsappShareUrl", () => {
     const url = new URL(whatsappShareUrl("18 G-TAS is back!"));
     expect(url.origin).toBe("https://wa.me");
     const text = url.searchParams.get("text")!;
-    expect(text).toBe(`18 G-TAS is back! ${SITE_URL}/?ref=wa-share`);
-    const ref = new URL(text.split(" ").at(-1)!).searchParams.get("ref");
-    expect(normaliseRef(ref)).toBe("wa-share");
+    expect(text).toBe(`18 G-TAS is back! ${SITE_URL}/?ref=wa-share&s=${SHARE_VERSION}`);
+    const link = new URL(text.split(" ").at(-1)!);
+    expect(normaliseRef(link.searchParams.get("ref"))).toBe("wa-share");
+  });
+
+  it("changes the shared address with the share card, so WhatsApp refetches the preview", () => {
+    expect(SHARE_IMAGE.path).toBe(`/og/18gtas-share-v${SHARE_VERSION}.jpg`);
+    expect(existsSync(`public${SHARE_IMAGE.path}`)).toBe(true);
+    const text = new URL(whatsappShareUrl("Vote", "wa-umlazi", "/vote")).searchParams.get("text")!;
+    expect(text).toBe(`Vote ${SITE_URL}/vote?ref=wa-umlazi&s=${SHARE_VERSION}`);
   });
 });
 

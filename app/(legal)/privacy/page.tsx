@@ -95,6 +95,11 @@ export default function Privacy() {
         visits, we use cookie-free analytics.
       </p>
       <p>
+        While you browse, your browser also keeps the share-link code you arrived with (for example
+        &ldquo;wa-share&rdquo;) for that tab, so your vote counts towards the link that brought you.
+        It is not a cookie, holds no personal information, and is cleared when you close the tab.
+      </p>
+      <p>
         Team members also get <strong>one sign-in cookie</strong> after opening their personal
         invite link. It keeps them signed in on that phone for up to 30 days, and ends when they
         sign out or the admin signs them out.

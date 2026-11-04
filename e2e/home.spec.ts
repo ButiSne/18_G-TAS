@@ -86,3 +86,14 @@ test("link previews use the share card at a plain address, on every page", async
   expect(bytes.includes(Buffer.from([0xff, 0xc2]))).toBe(false);
   expect((await request.get("/favicon.ico")).status()).toBe(200);
 });
+
+test("a shared link's channel code is kept for the tab, so the vote can count it", async ({
+  page,
+}) => {
+  await page.goto("/?ref=WA-Test&s=3");
+  await expect.poll(() => page.evaluate(() => sessionStorage.getItem("gtas_ref"))).toBe("wa-test");
+  await page.goto("/privacy?ref=<script>");
+  expect(await page.evaluate(() => sessionStorage.getItem("gtas_ref"))).toBe("wa-test");
+  // Not a cookie: the vote keeps its single functional cookie.
+  expect((await page.context().cookies()).map((c) => c.name)).not.toContain("gtas_ref");
+});
