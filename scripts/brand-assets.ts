@@ -102,30 +102,53 @@ await writeFile("app/apple-icon.png", await square(180, 0.14, ONYX));
 console.log("Icons: app/favicon.ico, app/icon.png, app/apple-icon.png");
 
 // --- Share card, rendered with the brand fonts -----------------------------------
-const logoData = `data:image/png;base64,${logo.toString("base64")}`;
+// The red-and-blue original would clash with the onyx-and-gold card (owner's call), so
+// the card uses a gold edition of it: the red fill becomes brand gold, and the blue
+// outline and lettering are cut out, so "18" and "G-TAS" show the dark card through.
+// The tab icons above keep the original colours.
+async function goldEdition(input: Buffer): Promise<Buffer> {
+  const { data, info } = await sharp(input)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  for (let i = 0; i < data.length; i += 4) {
+    const [r, g, b] = [data[i]!, data[i + 1]!, data[i + 2]!];
+    // How red a pixel is (vs the blue lettering and outline), with a soft edge.
+    const redness = (r - Math.max(g, b)) / 255;
+    const keep = Math.max(0, Math.min(1, (redness - 0.15) / 0.35));
+    data[i] = 201; // #C9A24A, brand gold
+    data[i + 1] = 162;
+    data[i + 2] = 74;
+    data[i + 3] = Math.round(data[i + 3]! * keep);
+  }
+  return sharp(data, { raw: info }).trim().png().toBuffer();
+}
+
+const goldLogo = await goldEdition(logo);
+const logoData = `data:image/png;base64,${goldLogo.toString("base64")}`;
 const html = `<!doctype html><html><head><meta charset="utf-8">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Cinzel:wght@500;700&family=Space+Mono:wght@400;700&display=block" rel="stylesheet">
 <style>
   html,body{margin:0;width:1200px;height:630px;overflow:hidden}
-  body{background:radial-gradient(ellipse at 85% 0%,rgba(201,162,74,.28),transparent 60%),#0D0D0D;color:#F3EDE2;
-       display:flex;align-items:center;gap:56px;padding:0 72px;box-sizing:border-box;font-family:'Space Mono',monospace}
-  .logo{width:380px;height:380px;flex:none;display:grid;place-items:center}
-  .logo img{max-width:100%;max-height:100%;object-fit:contain}
+  body{position:relative;background:radial-gradient(ellipse at 85% 0%,rgba(201,162,74,.26),transparent 60%),#0D0D0D;
+       color:#F3EDE2;font-family:'Space Mono',monospace}
+  .logo{position:absolute;right:70px;top:50%;transform:translateY(-50%);height:420px}
+  .text{position:absolute;left:72px;top:0;bottom:0;width:560px;display:flex;flex-direction:column;justify-content:center}
   .eyebrow{font-size:20px;letter-spacing:.3em;color:#C9A24A;text-transform:uppercase}
-  .brand{font-family:Cinzel;font-weight:700;font-size:44px;letter-spacing:.3em;margin-top:18px}
-  .big{font-family:'Archivo Black';font-size:116px;line-height:.86;text-transform:uppercase;margin-top:6px}
+  .brand{font-family:Cinzel;font-weight:700;font-size:44px;letter-spacing:.3em;margin-top:16px}
+  .big{font-family:'Archivo Black';font-size:124px;line-height:.86;text-transform:uppercase;margin-top:4px}
   .gold{color:#C9A24A}
-  .line{display:flex;align-items:center;gap:16px;margin-top:30px;font-size:20px;letter-spacing:.2em;text-transform:uppercase}
+  .line{display:flex;align-items:center;gap:16px;margin-top:28px;font-size:20px;letter-spacing:.2em;text-transform:uppercase}
   .line i{flex:1;height:2px;background:linear-gradient(90deg,rgba(201,162,74,.25),#C9A24A)}
-  .cta{margin-top:30px;display:inline-block;background:#C9A24A;color:#0D0D0D;font-weight:700;font-size:22px;padding:12px 26px;border-radius:999px}
+  .cta{margin-top:28px;display:inline-block;background:#C9A24A;color:#0D0D0D;font-weight:700;font-size:22px;padding:12px 26px;border-radius:999px}
 </style></head><body>
-<div class="logo"><img src="${logoData}" alt=""></div>
-<div style="flex:1">
+<img class="logo" src="${logoData}" alt="">
+<div class="text">
   <div class="eyebrow">XVIII years · KZN · Mzansi</div>
   <div class="brand">18 G-TAS</div>
   <div class="big">is<br><span class="gold">back.</span></div>
   <div class="line"><span>Est. 2008</span><i></i><span class="gold">Back 2026</span></div>
-  <div class="cta">Help choose the first drop →</div>
+  <div><span class="cta">Help choose the first drop →</span></div>
 </div></body></html>`;
 
 const browser = await chromium.launch();
@@ -139,7 +162,7 @@ const card = await sharp(png).jpeg({ quality: 86, mozjpeg: true }).toBuffer();
 await writeFile("app/opengraph-image.jpg", card);
 await writeFile("app/twitter-image.jpg", card);
 const alt =
-  "18 G-TAS is back: the 18 G-TAS logo, Est. 2008, back 2026. Help choose the first drop.";
+  "18 G-TAS is back: the 18 G-TAS triangle logo in gold, Est. 2008, back 2026. Help choose the first drop.";
 await writeFile("app/opengraph-image.alt.txt", alt);
 await writeFile("app/twitter-image.alt.txt", alt);
 console.log(`Share card: app/opengraph-image.jpg (${Math.round(card.length / 1024)} KB, 1200×630)`);
