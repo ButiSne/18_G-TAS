@@ -240,19 +240,78 @@ async function fullTriangle(input: Buffer, style: "original" | "gold"): Promise<
     .raw()
     .toBuffer();
 
-  // The lettering: blue pixels well inside the triangle (the blue outline along the edges
-  // is not lettering; the vector edge replaces it). Gold cuts it out; the original paints it.
-  const inset = W * 0.035; // the outline is ~12 px thick; the lettering sits 30 px or more inside
+  // The lettering: every blue shape except the outline. The outline is found by flooding
+  // through blue from the triangle's edges, no deeper than the outline is thick. The 8 sits
+  // close to the right edge but behind a strip of red, so it comes through whole. The
+  // vector edge replaces the outline.
+  // Gold cuts the lettering out; the original paints it.
+  const keepOf = (i: number) => {
+    const [r, g, b] = [data[i]!, data[i + 1]!, data[i + 2]!];
+    const redness = (r - Math.max(g, b)) / 255;
+    return Math.max(0, Math.min(1, (redness - 0.15) / 0.35));
+  };
   const distance = (line: Line, x: number, y: number) =>
     Math.abs(x - (line.a + line.b * y)) / Math.sqrt(1 + line.b ** 2);
+  const edgeDistance = (x: number, y: number) =>
+    Math.min(distance(L, x, y), distance(R, x, y), base - y);
+  const blueAt = (p: number) => data[p * 4 + 3]! > 128 && keepOf(p * 4) < 0.5;
+  // Only as far in as the outline is thick: the "1" touches the left edge, and the flood
+  // must not run on through it into the lettering.
+  const band = outline + 2.5;
+  // The base line is drawn thicker than the sides: measure it on its own, up from the base.
+  const baseOutline = median(
+    Array.from({ length: 40 }, (_, k) => Math.round(W * (0.3 + (0.4 * k) / 40))).map((x) => {
+      let y = baseY;
+      while (y > 0 && blueAt(y * W + x)) y--;
+      return baseY - y;
+    }),
+  );
+  const baseBand = baseOutline + 2.5;
+  const inBand = (x: number, y: number) =>
+    distance(L, x, y) <= band || distance(R, x, y) <= band || base - y <= baseBand;
+  console.log(`Outline: sides ${outline.toFixed(1)} px, base ${baseOutline} px thick`);
+  const isOutline = new Uint8Array(W * H);
+  const stack: number[] = [];
+  for (let p = 0; p < W * H; p++) {
+    if (blueAt(p) && edgeDistance(p % W, Math.floor(p / W)) < 3) {
+      isOutline[p] = 1;
+      stack.push(p);
+    }
+  }
+  while (stack.length) {
+    const p = stack.pop()!;
+    const [x, y] = [p % W, Math.floor(p / W)];
+    for (const [dx, dy] of [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ] as const) {
+      const [nx, ny] = [x + dx, y + dy];
+      if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+      const q = ny * W + nx;
+      if (!isOutline[q] && blueAt(q) && inBand(nx, ny)) {
+        isOutline[q] = 1;
+        stack.push(q);
+      }
+    }
+  }
+  // The outline's soft inner fringe (purple, half red) is not lettering either.
+  const nearOutline = (x: number, y: number) => {
+    for (let dy = -2; dy <= 2; dy++)
+      for (let dx = -2; dx <= 2; dx++) {
+        const [nx, ny] = [x + dx, y + dy];
+        if (nx >= 0 && ny >= 0 && nx < W && ny < H && isOutline[ny * W + nx]) return true;
+      }
+    return false;
+  };
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const i = (y * W + x) * 4;
       if (data[i + 3]! < 8) continue;
-      if (Math.min(distance(L, x, y), distance(R, x, y), base - y) < inset) continue;
-      const [r, g, b] = [data[i]!, data[i + 1]!, data[i + 2]!];
-      const redness = (r - Math.max(g, b)) / 255;
-      const keep = Math.max(0, Math.min(1, (redness - 0.15) / 0.35));
+      if (edgeDistance(x, y) < 1.5 || nearOutline(x, y)) continue;
+      const keep = keepOf(i);
+      if (keep >= 1) continue;
       const j = (y * W2 + x + pad) * 4;
       if (style === "gold") triangle[j + 3] = Math.round(triangle[j + 3]! * keep);
       else

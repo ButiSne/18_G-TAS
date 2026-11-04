@@ -12,7 +12,7 @@ export const LEGAL_NAME_FULL = `${LEGAL_NAME}, trading as ${TRADING_NAME}`;
  * bump SHARE_VERSION and run `pnpm brand-assets` again: the image and every shared link
  * get a new address, so WhatsApp fetches a fresh preview instead of showing the old card.
  */
-export const SHARE_VERSION = 3;
+export const SHARE_VERSION = 4;
 
 export const SHARE_IMAGE = {
   path: `/og/18gtas-share-v${SHARE_VERSION}.jpg`,
