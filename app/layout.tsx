@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo_Black, Cinzel, Montserrat, Playfair_Display, Space_Mono } from "next/font/google";
+import { RefKeeper } from "@/src/components/ref-keeper";
 import { SiteFooter } from "@/src/components/site-footer";
 import { getMessages } from "@/src/lib/messages";
 import { SHARE_IMAGE, SITE_URL } from "@/src/lib/site";
@@ -65,6 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="flex-1">{children}</main>
         {/* Privacy, terms and copyright are linked from every page (brief §6). */}
         <SiteFooter />
+        <RefKeeper />
       </body>
     </html>
   );

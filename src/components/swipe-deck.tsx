@@ -3,7 +3,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+} from "react";
 import {
   aboutYouAction,
   numberOneAction,
@@ -16,6 +24,7 @@ import { lineBadge } from "@/src/lib/design-line";
 import { fill, getMessages } from "@/src/lib/messages";
 import { whatsappShareUrl } from "@/src/lib/site";
 import type { PublicEntryCard } from "@/src/lib/stages";
+import { rememberedRef } from "@/src/lib/ref-memory";
 import { styleFor } from "@/src/lib/style";
 import { AGE_BRACKETS, PROVINCES } from "@/src/lib/demographics";
 
@@ -42,10 +51,12 @@ declare global {
  * left for CHA, or use the buttons and arrow keys (WCAG 2.5.1). Then "your number one"
  * and a "your style" card to share. Every swipe saves straight away.
  */
+const noSubscribe = () => () => {};
+
 export function SwipeDeck({
   cards,
   siteKey,
-  refCode,
+  refCode: refFromUrl,
   initial,
 }: {
   cards: PublicEntryCard[];
@@ -53,6 +64,10 @@ export function SwipeDeck({
   refCode: string | null;
   initial: { started: boolean; order: string[]; swipes: Swipe[]; numberOne: string | null };
 }) {
+  // A vote still counts towards the share link that brought this visitor, even when they
+  // reached /vote from another page (src/lib/ref-memory.ts). Null on the server.
+  const remembered = useSyncExternalStore(noSubscribe, rememberedRef, () => null);
+  const refCode = refFromUrl ?? remembered;
   const byId = useMemo(() => new Map(cards.map((c) => [c.entryId, c])), [cards]);
   const [order, setOrder] = useState(initial.order);
   const [swipes, setSwipes] = useState<Swipe[]>(initial.swipes);
