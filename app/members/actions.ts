@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getDb } from "@/src/db/server";
 import { SESSION_COOKIE } from "@/src/lib/auth/cookie";
+import { MAX_CURATOR_PICKS } from "@/src/lib/picks";
 import { requireMember } from "@/src/lib/auth/session";
 import { endSession } from "@/src/lib/auth/store";
 import {
@@ -29,7 +30,7 @@ export async function signOutAction() {
 
 export type PickResult = { ok: true; roundClosed?: boolean } | { ok: false; code: string };
 
-const ids = z.array(z.uuid()).max(20);
+const ids = z.array(z.uuid()).max(MAX_CURATOR_PICKS);
 
 // The member is always the signed-in person: a client can never pick on someone's behalf.
 async function run(fn: (memberId: string) => Promise<PickResult>): Promise<PickResult> {

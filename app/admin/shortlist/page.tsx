@@ -62,9 +62,42 @@ export default async function Shortlist() {
                 <span className="font-numerals w-6 text-[var(--accent)]">{i + 1}</span>
                 <span className="flex-1 truncate font-semibold">{name(s.designId)}</span>
                 <span className="font-mono text-xs text-[var(--muted)]">{s.points} pts</span>
+                {plan.adminPicks.includes(s.designId) && (
+                  <span className="bg-gold text-onyx rounded-full px-2 py-0.5 font-mono text-[9px] font-bold uppercase">
+                    {t.round.adminChoice}
+                  </span>
+                )}
               </li>
             ))}
           </ol>
+
+          {plan.adminExtras.length > 0 && (
+            <section className="mt-6">
+              <h2 className="font-youth text-xl">
+                {fill(a.adminExtrasTitle, { count: plan.adminExtras.length })}
+              </h2>
+              <p className="mt-1 text-sm text-[var(--muted)]">{a.adminExtrasBody}</p>
+              <ol className="mt-2 space-y-1">
+                {plan.adminExtras.map((id) => (
+                  <li
+                    key={id}
+                    className="flex min-h-11 items-center gap-3 rounded-xl border border-[var(--line)] px-3"
+                  >
+                    <span className="text-[var(--accent)]">+</span>
+                    <span className="flex-1 truncate font-semibold">{name(id)}</span>
+                    <span className="bg-gold text-onyx rounded-full px-2 py-0.5 font-mono text-[9px] font-bold uppercase">
+                      {t.round.adminChoice}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+              <p className="mt-2 font-mono text-xs text-[var(--muted)]">
+                {fill(a.deckTotal, {
+                  count: plan.cut.included.length + plan.adminExtras.length,
+                })}
+              </p>
+            </section>
+          )}
 
           <ActionForm
             action={confirmShortlistAction}

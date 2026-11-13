@@ -67,12 +67,12 @@ export function OpenRoundForm({
                 type="checkbox"
                 name="memberIds"
                 value={p.id}
-                defaultChecked={p.role === "member"}
+                defaultChecked
                 className="size-5 accent-[var(--accent)]"
               />
               <span className="flex-1">{p.name}</span>
               <span className="font-mono text-[10px] tracking-widest text-[var(--muted)] uppercase">
-                {p.role === "admin" ? t.auth.roleAdmin : t.auth.roleMember}
+                {p.role === "admin" ? r.adminPicksRole : t.auth.roleMember}
               </span>
             </label>
           ))}

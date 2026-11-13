@@ -5,7 +5,14 @@ import { z } from "zod";
 import { getDb } from "@/src/db/server";
 import { requestOrigin, requireAdmin } from "@/src/lib/auth/session";
 import { createInvite, revokeAllSessions } from "@/src/lib/auth/store";
-import { closeRound, openRound, RoundError, unlockMember } from "@/src/lib/team-round";
+import { redirect } from "next/navigation";
+import {
+  closeRound,
+  openRound,
+  reopenForAdmin,
+  RoundError,
+  unlockMember,
+} from "@/src/lib/team-round";
 
 const memberId = z.uuid();
 
@@ -106,4 +113,24 @@ export async function revokeSessionsAction(id: string) {
   if (!db || !parsed.success) return;
   await revokeAllSessions(db, { memberId: parsed.data, actorId: admin.id, now: new Date() });
   revalidatePath("/admin");
+}
+
+/**
+ * The admin's own picks (any number, no points, straight into the public vote). Joins the
+ * open round as curator, or reopens a finished round for the admin alone: members'
+ * submitted picks are never touched. Then on to the picks screen.
+ */
+export async function adminPicksAction(roundId: string) {
+  const admin = await requireAdmin();
+  const id = z.uuid().safeParse(roundId);
+  if (!id.success) return;
+  try {
+    await reopenForAdmin(getDb()!, { roundId: id.data, adminId: admin.id, now: new Date() });
+  } catch (error) {
+    roundFail(error);
+    return;
+  }
+  revalidatePath("/admin");
+  revalidatePath("/members");
+  redirect("/members/picks");
 }

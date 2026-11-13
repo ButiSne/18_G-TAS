@@ -81,6 +81,10 @@ export type ShortlistPlan = {
   roundId: string;
   size: number;
   cut: ShortlistCut;
+  /** Every admin pick: guaranteed a place in the public vote, on top of the team's cut. */
+  adminPicks: string[];
+  /** The admin picks the team's cut doesn't already include: they add to the deck. */
+  adminExtras: string[];
   coverage: ReturnType<typeof shortlistCoverage>;
 };
 
@@ -90,7 +94,13 @@ export async function shortlistPlan(db: Db, roundId: string): Promise<ShortlistP
   const results = round ? await roundResults(db, roundId) : null;
   if (!round || !results) return null;
   const cut = cutShortlist(results.standings, round.shortlistSize);
-  const ids = [...cut.included, ...(cut.needsDecision?.candidates ?? [])].map((s) => s.designId);
+  const inCut = new Set(cut.included.map((s) => s.designId));
+  const adminExtras = results.adminPicks.filter((id) => !inCut.has(id));
+  const ids = [
+    ...cut.included.map((s) => s.designId),
+    ...(cut.needsDecision?.candidates ?? []).map((s) => s.designId),
+    ...adminExtras,
+  ];
   const methods = ids.length
     ? await db
         .select({ id: design.id, printMethod: design.printMethod })
@@ -99,12 +109,19 @@ export async function shortlistPlan(db: Db, roundId: string): Promise<ShortlistP
     : [];
   const byId = new Map(methods.map((m) => [m.id, m.printMethod]));
   const coverage = shortlistCoverage(
-    cut.included.map((s) => {
-      const pm = byId.get(s.designId) ?? null;
-      return { designId: s.designId, printMethod: isPrintMethod(pm) ? pm : null };
+    [...cut.included.map((s) => s.designId), ...adminExtras].map((designId) => {
+      const pm = byId.get(designId) ?? null;
+      return { designId, printMethod: isPrintMethod(pm) ? pm : null };
     }),
   );
-  return { roundId, size: round.shortlistSize, cut, coverage };
+  return {
+    roundId,
+    size: round.shortlistSize,
+    cut,
+    adminPicks: results.adminPicks,
+    adminExtras,
+    coverage,
+  };
 }
 
 /**
@@ -130,7 +147,22 @@ export async function confirmShortlist(
     }
     chosen = candidates.filter((c) => picks.includes(c.designId));
   }
-  const final = [...cut.included, ...chosen];
+  // The team's cut, then the admin's picks it doesn't already hold (no points needed).
+  const teamFinal = [...cut.included, ...chosen];
+  const inTeam = new Set(teamFinal.map((s) => s.designId));
+  const standingOf = new Map(
+    [...cut.included, ...(cut.needsDecision?.candidates ?? [])].map((s) => [s.designId, s]),
+  );
+  const final = [
+    ...teamFinal,
+    ...plan.adminPicks
+      .filter((id) => !inTeam.has(id))
+      .map(
+        (designId) =>
+          standingOf.get(designId) ?? { designId, points: 0, pickedBy: 0, firstPlaces: 0 },
+      ),
+  ];
+  const adminChoice = new Set(plan.adminPicks);
 
   return db.transaction(async (tx) => {
     const [round] = await tx
@@ -149,6 +181,7 @@ export async function confirmShortlist(
         firstPlaces: s.firstPlaces,
         position: i + 1,
         tieBreakNote: chosen.some((c) => c.designId === s.designId) ? opts.note : null,
+        adminChoice: adminChoice.has(s.designId),
       })),
     );
     const [pr] = await tx
@@ -183,6 +216,8 @@ export async function confirmShortlist(
       roundId: round.id,
       publicRoundId: pr!.id,
       size: final.length,
+      teamCut: teamFinal.length,
+      adminPicks: plan.adminPicks,
       tieBreak: cut.needsDecision
         ? {
             candidates: cut.needsDecision.candidates.map((c) => c.designId),

@@ -8,7 +8,12 @@ import { formatSATime } from "@/src/lib/format";
 import { fill, getMessages } from "@/src/lib/messages";
 import { currentPublicRound, publicEntries } from "@/src/lib/stages";
 import { adminRoundOverview, currentRound } from "@/src/lib/team-round";
-import { closeRoundAction, revokeSessionsAction, unlockMemberAction } from "./actions";
+import {
+  adminPicksAction,
+  closeRoundAction,
+  revokeSessionsAction,
+  unlockMemberAction,
+} from "./actions";
 import { ChannelLinks } from "./channel-links";
 import { InviteButton } from "./invite-button";
 import { OpenRoundForm } from "./open-round-form";
@@ -133,9 +138,11 @@ export default async function Admin() {
                 <li key={m.memberId} className="flex min-h-11 items-center gap-3">
                   <span className="flex-1">{m.name}</span>
                   <span className="font-mono text-xs text-[var(--muted)]">
-                    {m.submittedAt
-                      ? `✓ ${r.statusSubmitted}`
-                      : fill(r.statusPicking, { count: m.picks, n: round.picksPerMember })}
+                    {m.role === "curator" && !m.submittedAt
+                      ? fill(r.rosterCurator, { count: m.picks })
+                      : m.submittedAt
+                        ? `✓ ${r.statusSubmitted}`
+                        : fill(r.statusPicking, { count: m.picks, n: round.picksPerMember })}
                   </span>
                   {m.submittedAt && round.status === "open" && (
                     <form action={unlockMemberAction.bind(null, round.id, m.memberId)}>
@@ -147,6 +154,26 @@ export default async function Admin() {
                 </li>
               ))}
             </ul>
+          )}
+          {round.status === "open" &&
+            (roster.some((m) => m.memberId === me.id && m.role === "curator") ? (
+              <Link href="/members/picks" className={`${buttonPrimary} mt-4 w-full`}>
+                {r.adminPicksOpen}
+              </Link>
+            ) : (
+              <form action={adminPicksAction.bind(null, round.id)} className="mt-4">
+                <SubmitButton className={`${buttonPrimary} w-full`} pending="…">
+                  {r.adminPicksJoin}
+                </SubmitButton>
+              </form>
+            ))}
+          {round.status === "closed" && (
+            <form action={adminPicksAction.bind(null, round.id)} className="mt-4">
+              <p className="text-sm text-[var(--muted)]">{r.adminPicksReopenBody}</p>
+              <SubmitButton className={`${buttonPrimary} mt-3 w-full`} pending="…">
+                {r.adminPicksReopen}
+              </SubmitButton>
+            </form>
           )}
           {round.status === "open" && (
             <form action={closeRoundAction.bind(null, round.id)} className="mt-4">

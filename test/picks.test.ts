@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validatePicks } from "@/src/lib/picks";
+import { MAX_CURATOR_PICKS, UNLIMITED, validatePicks } from "@/src/lib/picks";
 
 const picks = (n: number) =>
   Array.from({ length: n }, (_, i) => ({ designId: `d${i}`, rank: i + 1 }));
@@ -50,5 +50,33 @@ describe("validatePicks", () => {
     expect(validatePicks([{ designId: "a", rank: 7 }], 6, false)[0]?.kind).toBe(
       "rank_out_of_range",
     );
+  });
+});
+
+describe("validatePicks for the admin (no set number)", () => {
+  const many = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({ designId: `d${i}`, rank: i + 1 }));
+
+  it("accepts any number from 1 up, while drafting and on submit", () => {
+    expect(validatePicks(many(1), UNLIMITED, true)).toEqual([]);
+    expect(validatePicks(many(37), UNLIMITED, true)).toEqual([]);
+    expect(validatePicks([], UNLIMITED, false)).toEqual([]);
+  });
+
+  it("will not submit an empty set", () => {
+    expect(validatePicks([], UNLIMITED, true).map((p) => p.kind)).toEqual(["wrong_count"]);
+  });
+
+  it("still refuses duplicates and a runaway request", () => {
+    const dup = [
+      { designId: "a", rank: 1 },
+      { designId: "a", rank: 2 },
+    ];
+    expect(validatePicks(dup, UNLIMITED, false).map((p) => p.kind)).toEqual(["duplicate_design"]);
+    expect(
+      validatePicks(many(MAX_CURATOR_PICKS + 1), UNLIMITED, false).some(
+        (p) => p.kind === "wrong_count",
+      ),
+    ).toBe(true);
   });
 });

@@ -233,7 +233,9 @@
       "not_draft": "The round has already been opened.",
       "bad_settings": "Check the settings: 1–20 picks, shortlist 10–40, at least one person.",
       "not_picked": "You can only add a note to a design you ticked.",
-      "too_long": "That note is too long. Keep it under the limit."
+      "too_long": "That note is too long. Keep it under the limit.",
+      "not_admin": "Only an admin can do that.",
+      "not_closed": "The shortlist is already confirmed, so the team round can't be reopened."
     },
     "resultsTitle": "Team results",
     "resultsHidden": "Results open when everyone has submitted, so nobody is swayed by anyone else.",
@@ -259,7 +261,26 @@
       "open": "Open",
       "closed": "Closed",
       "published": "Published"
-    }
+    },
+    "curatorTitle": "Your admin picks",
+    "curatorHome": "As admin, tick as many designs as you like. They earn no points, but every one goes straight into the public YEBO or CHA vote.",
+    "curatorCta": "Your admin picks ({count})",
+    "curatorCount": "{count} ticked",
+    "curatorTicked": "✓ Ticked · Remove",
+    "curatorSheetTitle": "Your admin picks",
+    "curatorSheetHint": "No limit and no points: every design you keep here goes into the public vote. Add a comment or suggestion to any of them.",
+    "curatorSubmit": "Submit my {count} picks",
+    "curatorConfirm": "Submit your {count} admin picks? They lock after this, and the round closes once everyone is in.",
+    "curatorNeedOne": "Tick at least one design to submit.",
+    "adminPicksJoin": "Add your admin picks",
+    "adminPicksReopen": "Reopen for your admin picks",
+    "adminPicksReopenBody": "The team has finished. This opens the round again for you only: every member's submitted picks stay exactly as they are, locked. When you submit, the round closes again by itself.",
+    "adminPicksOpen": "Your admin picks",
+    "rosterCurator": "Admin · {count} ticked",
+    "adminChoice": "Admin's choice",
+    "adminPicksTitle": "Admin's picks",
+    "adminPicksBody": "No points. Every one goes straight into the public YEBO or CHA vote.",
+    "adminPicksRole": "Admin · any number"
   },
   "admin": {
     "nav": {
@@ -322,7 +343,10 @@
       "no_public_round": "There is no public vote yet.",
       "invalid_final_ten": "The final ten needs exactly 5 sublimation and 5 other designs, each with a print method.",
       "bad_design": "That print method is not on the list."
-    }
+    },
+    "adminExtrasTitle": "+ {count} admin picks on top",
+    "adminExtrasBody": "Your admin picks that didn't make the team's cut. They join the public vote anyway, with no points.",
+    "deckTotal": "{count} designs in the public vote (plus any you settle in a tie below)."
   },
   "vote": {
     "soonTitle": "Voting opens soon",
