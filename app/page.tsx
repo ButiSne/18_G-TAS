@@ -162,6 +162,15 @@ function Peek({ show, share }: { show: Showcase; share: string }) {
   );
 }
 
+// The strip drifts at a steady pace however many designs it holds: slow enough to take a
+// design in and remember it when the vote comes. A fixed loop time made a longer row (the
+// real shortlist) run faster than the teasers did.
+const DRIFT_PX_PER_SECOND = 25;
+const SHORTLIST_CARD_STEP = 144 + 12; // w-36 card + gap-3
+const TEASER_CARD_STEP = 128 + 12; // w-32 teaser + gap-3
+const driftSeconds = (cards: number, step: number) =>
+  `${Math.max(30, Math.round((cards * step) / DRIFT_PX_PER_SECOND))}s`;
+
 /** The call to action under the strip follows the public vote's state. */
 function ChoiceButton({ voting, share }: { voting: Showcase["voting"]; share: string }) {
   const base =
@@ -206,7 +215,10 @@ function ShortlistStrip({ cards, voting }: { cards: ShortlistCard[]; voting: Sho
         <div
           key={i}
           className="marquee flex w-max gap-3"
-          style={{ animationDirection: i % 2 ? "reverse" : "normal" }}
+          style={{
+            animationDirection: i % 2 ? "reverse" : "normal",
+            animationDuration: driftSeconds(row.length, SHORTLIST_CARD_STEP),
+          }}
         >
           {[...row, ...row].map((card, j) => (
             <Link
@@ -258,7 +270,10 @@ function TeaserStrip({ teasers }: { teasers: Teaser[] }) {
         <div
           key={i}
           className="marquee flex w-max gap-3"
-          style={{ animationDirection: i % 2 ? "reverse" : "normal" }}
+          style={{
+            animationDirection: i % 2 ? "reverse" : "normal",
+            animationDuration: driftSeconds(row.length, TEASER_CARD_STEP),
+          }}
         >
           {[...row, ...row].map((teaser, j) => (
             <div

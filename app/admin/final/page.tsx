@@ -78,7 +78,14 @@ export default async function FinalTen() {
                       />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-bold">{c.title}</span>
+                      <span className="flex items-center gap-2">
+                        <span className="truncate text-sm font-bold">{c.title}</span>
+                        {c.adminChoice && (
+                          <span className="bg-gold text-onyx shrink-0 rounded-full px-1.5 py-px font-mono text-[9px] font-bold uppercase">
+                            {t.round.adminChoice}
+                          </span>
+                        )}
+                      </span>
                       <span className="block font-mono text-[11px] text-[var(--muted)]">
                         #{c.teamPosition} · {c.teamPoints} {a.teamPoints} · {a.yeboRate}{" "}
                         {c.swipes ? `${Math.round(c.likeRate * 100)}% (#${c.publicPosition})` : "–"}

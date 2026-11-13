@@ -177,6 +177,12 @@ body {
 .marquee {
   animation: marquee 45s linear infinite;
 }
+/* Hold a finger on the strip (or hover, or tab into it) to stop and look. */
+.marquee:hover,
+.marquee:active,
+.marquee:focus-within {
+  animation-play-state: paused;
+}
 
 /* --- Legal pages: readable long-form text on a phone. --- */
 .legal h1 {
