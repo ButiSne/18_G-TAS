@@ -53,3 +53,21 @@ export function saltedHash(value: string, salt: string): string {
 export function clientIp(forwardedFor: string | null, realIp: string | null): string {
   return (forwardedFor?.split(",")[0] ?? realIp ?? "unknown").trim() || "unknown";
 }
+
+/**
+ * The vote receipt: the device token, signed, kept in the phone's own storage as well as
+ * the cookie. Clearing cookies alone then brings back the same phone, not a fresh vote.
+ * A separate MAC domain from the cookie, so one can never pass for the other.
+ */
+export function signReceipt(deviceToken: string, secret: string): string {
+  return `${deviceToken}.${mac(`receipt:${deviceToken}`, secret)}`;
+}
+
+export function readReceipt(value: unknown, secret: string): string | null {
+  if (typeof value !== "string" || value.length > 120) return null;
+  const [token, sig] = value.split(".");
+  if (!token || !sig || !/^[A-Za-z0-9_-]{32}$/.test(token)) return null;
+  const expected = Buffer.from(mac(`receipt:${token}`, secret));
+  const given = Buffer.from(sig);
+  return expected.length === given.length && timingSafeEqual(expected, given) ? token : null;
+}

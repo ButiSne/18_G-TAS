@@ -4,7 +4,18 @@
 
 import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import type { createDb } from "../db/client.ts";
-import { design, member, memberPick, roundMember, selectionRound } from "../db/schema.ts";
+import {
+  colourway,
+  design,
+  member,
+  memberPick,
+  publicEntry,
+  publicRound,
+  roundMember,
+  selectionRound,
+  shortlist,
+  swipe,
+} from "../db/schema.ts";
 import { audit } from "./audit.ts";
 import { picksPerMemberSchema, UNLIMITED, validatePicks, type PicksProblem } from "./picks.ts";
 import { computeStandings, type MemberPicks, type Standing } from "./scoring.ts";
@@ -23,6 +34,7 @@ export type RoundErrorCode =
   | "not_picked"
   | "not_admin"
   | "not_closed"
+  | "vote_started"
   | "too_long"
   | "bad_settings";
 
@@ -237,6 +249,23 @@ export async function reopenForAdmin(
           .values({ roundId: round.id, memberId: opts.adminId, role: "curator" });
       return;
     }
+    if (round.status === "published") {
+      // The shortlist is confirmed; the admin may still add picks while the public vote is
+      // a draft. They go straight into it when the admin submits (addAdminPicksToVote).
+      if (!(await draftPublicRound(tx, round.id))) throw new RoundError("vote_started");
+      if (membership?.submittedAt) throw new RoundError("already_submitted");
+      if (!membership)
+        await tx
+          .insert(roundMember)
+          .values({ roundId: round.id, memberId: opts.adminId, role: "curator" });
+      else if (membership.role !== "curator")
+        await tx
+          .update(roundMember)
+          .set({ role: "curator" })
+          .where(eq(roundMember.id, membership.id));
+      await audit(tx, opts.adminId, "round.admin_picks_window", { roundId: round.id });
+      return;
+    }
     if (round.status !== "closed") throw new RoundError("not_closed");
     if (membership) {
       await tx
@@ -279,15 +308,51 @@ export async function adminRoundOverview(db: Db, roundId: string) {
 // --- Members: save and submit picks ------------------------------------------------
 
 /** Locks the round row so concurrent saves and submits are serialised. */
-async function lockOpenRound(tx: Parameters<Parameters<Db["transaction"]>[0]>[0], roundId: string) {
+type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
+
+/** The public round built from this team round, if it is still a draft with no swipes. */
+async function draftPublicRound(tx: Tx | Db, roundId: string) {
+  const [pr] = await tx
+    .select({ id: publicRound.id, status: publicRound.status })
+    .from(publicRound)
+    .where(eq(publicRound.selectionRoundId, roundId));
+  if (!pr || pr.status !== "draft") return null;
+  const [anySwipe] = await tx
+    .select({ id: swipe.id })
+    .from(swipe)
+    .where(eq(swipe.publicRoundId, pr.id))
+    .limit(1);
+  return anySwipe ? null : pr;
+}
+
+/**
+ * True when the admin may still add picks to a confirmed shortlist: the public vote built
+ * from it hasn't started.
+ */
+export async function adminPicksWindowOpen(db: Db, roundId: string) {
+  return Boolean(await draftPublicRound(db, roundId));
+}
+
+/**
+ * The round a member may pick in: an open round, or, for the admin (curator) only, a
+ * confirmed shortlist whose public vote is still a draft.
+ */
+async function lockPickableRound(tx: Tx, roundId: string, memberId: string) {
   const [round] = await tx
     .select()
     .from(selectionRound)
     .where(eq(selectionRound.id, roundId))
     .for("update");
   if (!round) throw new RoundError("no_round");
-  if (round.status !== "open") throw new RoundError("not_open");
-  return round;
+  if (round.status === "open") return round;
+  if (round.status === "published") {
+    const [m] = await tx
+      .select({ role: roundMember.role })
+      .from(roundMember)
+      .where(and(eq(roundMember.roundId, round.id), eq(roundMember.memberId, memberId)));
+    if (m?.role === "curator" && (await draftPublicRound(tx, round.id))) return round;
+  }
+  throw new RoundError("not_open");
 }
 
 async function lockMembership(
@@ -314,7 +379,7 @@ export async function savePicks(
   opts: { roundId: string; memberId: string; designIds: string[]; now: Date },
 ) {
   await db.transaction(async (tx) => {
-    const round = await lockOpenRound(tx, opts.roundId);
+    const round = await lockPickableRound(tx, opts.roundId, opts.memberId);
     const membership = await lockMembership(tx, round.id, opts.memberId);
     const picks = opts.designIds.map((designId, i) => ({ designId, rank: i + 1 }));
     const limit = membership.role === "curator" ? UNLIMITED : round.picksPerMember;
@@ -374,7 +439,7 @@ export async function savePickNote(
 ) {
   const note = cleanText(opts.note, NOTE_MAX);
   await db.transaction(async (tx) => {
-    const round = await lockOpenRound(tx, opts.roundId);
+    const round = await lockPickableRound(tx, opts.roundId, opts.memberId);
     await lockMembership(tx, round.id, opts.memberId);
     const updated = await tx
       .update(memberPick)
@@ -398,7 +463,7 @@ export async function saveSuggestion(
 ) {
   const suggestion = cleanText(opts.text, SUGGESTION_MAX);
   await db.transaction(async (tx) => {
-    const round = await lockOpenRound(tx, opts.roundId);
+    const round = await lockPickableRound(tx, opts.roundId, opts.memberId);
     await lockMembership(tx, round.id, opts.memberId);
     await tx
       .update(roundMember)
@@ -416,12 +481,13 @@ export async function submitPicks(
   opts: { roundId: string; memberId: string; now: Date },
 ): Promise<{ roundClosed: boolean }> {
   return db.transaction(async (tx) => {
-    const round = await lockOpenRound(tx, opts.roundId);
+    const round = await lockPickableRound(tx, opts.roundId, opts.memberId);
     const membership = await lockMembership(tx, round.id, opts.memberId);
     const picks = await tx
       .select({ designId: memberPick.designId, rank: memberPick.rank })
       .from(memberPick)
-      .where(and(eq(memberPick.roundId, round.id), eq(memberPick.memberId, opts.memberId)));
+      .where(and(eq(memberPick.roundId, round.id), eq(memberPick.memberId, opts.memberId)))
+      .orderBy(asc(memberPick.rank));
     const limit = membership.role === "curator" ? UNLIMITED : round.picksPerMember;
     const problems = validatePicks(picks, limit, true);
     if (problems.length) throw new RoundError("invalid_picks", problems);
@@ -431,6 +497,15 @@ export async function submitPicks(
       .set({ submittedAt: opts.now })
       .where(and(eq(roundMember.roundId, round.id), eq(roundMember.memberId, opts.memberId)));
     await audit(tx, opts.memberId, "picks.submitted", { roundId: round.id });
+    if (round.status === "published") {
+      await addAdminPicksToVote(
+        tx,
+        round,
+        picks.map((p) => p.designId),
+        opts.memberId,
+      );
+      return { roundClosed: false };
+    }
 
     const [waiting] = await tx
       .select({ n: sql<number>`count(*)::int` })
@@ -538,4 +613,107 @@ export async function roundResults(db: Db, roundId: string): Promise<RoundResult
       role: g.role,
     })),
   };
+}
+
+/**
+ * The admin's picks after the shortlist was confirmed: each joins the public vote (still a
+ * draft) as a guaranteed place, marked admin's choice, with whatever team points it has.
+ * Picks already on the shortlist are only marked.
+ */
+async function addAdminPicksToVote(
+  tx: Tx,
+  round: typeof selectionRound.$inferSelect,
+  designIds: string[],
+  actorId: string,
+) {
+  const pr = await draftPublicRound(tx, round.id);
+  if (!pr) throw new RoundError("vote_started");
+  const listed = await tx
+    .select({ designId: shortlist.designId, position: shortlist.position })
+    .from(shortlist)
+    .where(eq(shortlist.roundId, round.id));
+  const onList = new Set(listed.map((l) => l.designId));
+  const entries = new Set(
+    (
+      await tx
+        .select({ designId: publicEntry.designId })
+        .from(publicEntry)
+        .where(eq(publicEntry.publicRoundId, pr.id))
+    ).map((e) => e.designId),
+  );
+
+  // Team points, for the record (they earn the admin's picks nothing).
+  const rows = await tx
+    .select({ memberId: memberPick.memberId, designId: memberPick.designId, rank: memberPick.rank })
+    .from(memberPick)
+    .innerJoin(
+      roundMember,
+      and(
+        eq(roundMember.roundId, memberPick.roundId),
+        eq(roundMember.memberId, memberPick.memberId),
+      ),
+    )
+    .where(
+      and(
+        eq(memberPick.roundId, round.id),
+        eq(roundMember.role, "picker"),
+        isNotNull(roundMember.submittedAt),
+      ),
+    );
+  const byMember = new Map<string, { designId: string; rank: number }[]>();
+  for (const r of rows) byMember.set(r.memberId, [...(byMember.get(r.memberId) ?? []), r]);
+  const standing = new Map(
+    computeStandings(
+      [...byMember].map(([memberId, picks]) => ({ memberId, picks })),
+      round.picksPerMember,
+    ).map((s) => [s.designId, s]),
+  );
+
+  if (designIds.some((id) => onList.has(id))) {
+    await tx
+      .update(shortlist)
+      .set({ adminChoice: true })
+      .where(and(eq(shortlist.roundId, round.id), inArray(shortlist.designId, designIds)));
+  }
+  const added = designIds.filter((id) => !onList.has(id));
+  let position = Math.max(0, ...listed.map((l) => l.position));
+  if (added.length) {
+    await tx.insert(shortlist).values(
+      added.map((designId) => {
+        const st = standing.get(designId);
+        return {
+          roundId: round.id,
+          designId,
+          points: st?.points ?? 0,
+          pickedBy: st?.pickedBy ?? 0,
+          firstPlaces: st?.firstPlaces ?? 0,
+          position: ++position,
+          adminChoice: true,
+        };
+      }),
+    );
+  }
+  const toEnter = designIds.filter((id) => !entries.has(id));
+  if (toEnter.length) {
+    const cws = await tx
+      .select({ designId: colourway.designId, id: colourway.id })
+      .from(colourway)
+      .where(inArray(colourway.designId, toEnter))
+      .orderBy(asc(colourway.sortOrder));
+    const first = new Map<string, string>();
+    for (const c of cws) if (!first.has(c.designId)) first.set(c.designId, c.id);
+    await tx.insert(publicEntry).values(
+      toEnter.map((designId) => ({
+        publicRoundId: pr.id,
+        designId,
+        colourwayId: first.get(designId) ?? null,
+      })),
+    );
+  }
+  await audit(tx, actorId, "public_round.admin_picks_added", {
+    roundId: round.id,
+    publicRoundId: pr.id,
+    added: toEnter,
+    alreadyIn: designIds.filter((id) => entries.has(id)),
+  });
 }

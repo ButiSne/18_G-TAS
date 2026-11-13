@@ -47,6 +47,7 @@ export async function verifiedVoter() {
   if (!isVerified(voter, new Date())) return null;
   return {
     deviceHash: saltedHash(voter!.d, secrets.salt),
+    // For the speed limits only: never stored with a vote.
     ipHash: await requestIpHash(secrets.salt),
   };
 }

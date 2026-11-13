@@ -245,7 +245,8 @@ export const vote = pgTable(
       .notNull()
       .references(() => publicEntry.id),
     deviceHash: text("device_hash").notNull(),
-    ipHash: text("ip_hash").notNull(),
+    // No longer written (owner, Nov 2026: nothing but the vote is kept from the public).
+    ipHash: text("ip_hash"),
     ageBracket: text("age_bracket"),
     province: text("province"),
     area: text("area"),
@@ -267,7 +268,8 @@ export const swipe = pgTable(
       .notNull()
       .references(() => publicEntry.id, { onDelete: "cascade" }),
     deviceHash: text("device_hash").notNull(),
-    ipHash: text("ip_hash").notNull(),
+    // No longer written (owner, Nov 2026: nothing but the vote is kept from the public).
+    ipHash: text("ip_hash"),
     liked: boolean("liked").notNull(),
     ageBracket: text("age_bracket"),
     province: text("province"),
@@ -278,6 +280,22 @@ export const swipe = pgTable(
 );
 
 // Totals kept after raw swipes are deleted 90 days after publish (brief §6).
+// One submitted ballot per phone per public round (owner's rule, Nov 2026): once a phone
+// submits, its swipes and number one are final. Only the scrambled phone code is kept, and
+// it is deleted with the raw votes 90 days after the round is published.
+export const ballot = pgTable(
+  "ballot",
+  {
+    id: id(),
+    publicRoundId: uuid("public_round_id")
+      .notNull()
+      .references(() => publicRound.id, { onDelete: "cascade" }),
+    deviceHash: text("device_hash").notNull(),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("ballot_once_per_device").on(t.publicRoundId, t.deviceHash)],
+);
+
 export const swipeAggregate = pgTable(
   "swipe_aggregate",
   {

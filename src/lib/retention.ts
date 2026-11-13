@@ -3,11 +3,11 @@
 // For each such round, in one transaction:
 //   1. freeze the results as a snapshot on the round (so /results keeps working),
 //   2. roll swipes into swipe_aggregate and number-one votes into vote_aggregate,
-//   3. delete the raw swipe, vote and matchup rows.
+//   3. delete the raw swipe, vote, matchup and ballot rows (ballots hold hashes too).
 
 import { and, eq, isNull, lt, sql } from "drizzle-orm";
 import type { createDb } from "../db/client.ts";
-import { matchup, publicRound, swipe, vote } from "../db/schema.ts";
+import { ballot, matchup, publicRound, swipe, vote } from "../db/schema.ts";
 import { audit } from "./audit.ts";
 import { sweepRateLimits } from "./rate-limit.ts";
 import { publicResults } from "./stages.ts";
@@ -68,6 +68,7 @@ export async function runRetention(db: Db, now: Date): Promise<RetentionReport> 
         .where(eq(vote.publicRoundId, round.id))
         .returning({ id: vote.id });
       await tx.delete(matchup).where(eq(matchup.publicRoundId, round.id));
+      await tx.delete(ballot).where(eq(ballot.publicRoundId, round.id));
       if (swipes.length || votes.length) {
         await audit(tx, null, "retention.rolled_up", {
           publicRoundId: round.id,

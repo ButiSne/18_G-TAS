@@ -74,12 +74,15 @@ export default async function AdminResults() {
               </ul>
             </section>
             <section className="rounded-2xl border border-[var(--line)] p-4">
-              <h2 className="font-bold">{a.byAge}</h2>
+              <h2 className="font-bold">{a.byLine}</h2>
               <ul className="mt-2 space-y-1 font-mono text-sm">
-                {res.byAge.map((x) => (
-                  <li key={x.ageBracket} className="flex justify-between">
-                    <span>{x.ageBracket}</span>
-                    <span>{x.devices}</span>
+                {res.byLine.map((x) => (
+                  <li key={x.line} className="flex justify-between gap-3">
+                    <span>{x.line}</span>
+                    <span>
+                      {x.swipes ? pct(x.likes / x.swipes) : "–"} {a.yeboRate.toLowerCase()} ·{" "}
+                      {x.designs}
+                    </span>
                   </li>
                 ))}
               </ul>

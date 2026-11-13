@@ -7,7 +7,7 @@ import { teamOverview } from "@/src/lib/auth/store";
 import { formatSATime } from "@/src/lib/format";
 import { fill, getMessages } from "@/src/lib/messages";
 import { currentPublicRound, publicEntries } from "@/src/lib/stages";
-import { adminRoundOverview, currentRound } from "@/src/lib/team-round";
+import { adminPicksWindowOpen, adminRoundOverview, currentRound } from "@/src/lib/team-round";
 import {
   adminPicksAction,
   closeRoundAction,
@@ -31,6 +31,8 @@ export default async function Admin() {
   const team = await teamOverview(db, new Date());
   const round = await currentRound(db);
   const roster = round && round.status !== "draft" ? await adminRoundOverview(db, round.id) : [];
+  const myCuration = roster.find((m) => m.memberId === me.id && m.role === "curator");
+  const adminWindow = round?.status === "published" && (await adminPicksWindowOpen(db, round.id));
   const pr = await currentPublicRound(db);
   const entries = pr ? (await publicEntries(db, pr.id)).length : 0;
   const nextStep = { open: a.openVote, closed: a.closeVote, published: a.publish } as const;
@@ -163,6 +165,23 @@ export default async function Admin() {
             ) : (
               <form action={adminPicksAction.bind(null, round.id)} className="mt-4">
                 <SubmitButton className={`${buttonPrimary} w-full`} pending="…">
+                  {r.adminPicksJoin}
+                </SubmitButton>
+              </form>
+            ))}
+          {adminWindow &&
+            (myCuration?.submittedAt ? (
+              <p className="text-lime-700 dark:text-lime mt-4 text-sm font-bold">
+                ✓ {fill(r.adminPicksAdded, { count: myCuration.picks })}
+              </p>
+            ) : myCuration ? (
+              <Link href="/members/picks" className={`${buttonPrimary} mt-4 w-full`}>
+                {r.adminPicksOpen}
+              </Link>
+            ) : (
+              <form action={adminPicksAction.bind(null, round.id)} className="mt-4">
+                <p className="text-sm text-[var(--muted)]">{r.adminPicksWindowBody}</p>
+                <SubmitButton className={`${buttonPrimary} mt-3 w-full`} pending="…">
                   {r.adminPicksJoin}
                 </SubmitButton>
               </form>

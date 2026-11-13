@@ -13,9 +13,9 @@ import {
   useTransition,
 } from "react";
 import {
-  aboutYouAction,
   numberOneAction,
   startVotingAction,
+  submitVoteAction,
   swipeAction,
   undoAction,
   type VoteResult,
@@ -24,9 +24,9 @@ import { lineBadge } from "@/src/lib/design-line";
 import { fill, getMessages } from "@/src/lib/messages";
 import { whatsappShareUrl } from "@/src/lib/site";
 import type { PublicEntryCard } from "@/src/lib/stages";
+import { readStoredReceipt, storeReceipt } from "@/src/lib/device-memory";
 import { rememberedRef } from "@/src/lib/ref-memory";
 import { styleFor } from "@/src/lib/style";
-import { AGE_BRACKETS, PROVINCES } from "@/src/lib/demographics";
 
 const t = getMessages();
 const v = t.vote;
@@ -62,7 +62,13 @@ export function SwipeDeck({
   cards: PublicEntryCard[];
   siteKey: string | null;
   refCode: string | null;
-  initial: { started: boolean; order: string[]; swipes: Swipe[]; numberOne: string | null };
+  initial: {
+    started: boolean;
+    order: string[];
+    swipes: Swipe[];
+    numberOne: string | null;
+    submitted: boolean;
+  };
 }) {
   // A vote still counts towards the share link that brought this visitor, even when they
   // reached /vote from another page (src/lib/ref-memory.ts). Null on the server.
@@ -72,8 +78,11 @@ export function SwipeDeck({
   const [order, setOrder] = useState(initial.order);
   const [swipes, setSwipes] = useState<Swipe[]>(initial.swipes);
   const [numberOne, setNumberOne] = useState(initial.numberOne);
+  // One vote per phone: once submitted, the phone only sees its thank-you and style card.
+  const [submitted, setSubmitted] = useState(initial.submitted);
+  const [choice, setChoice] = useState<string | null>(initial.numberOne);
   const [phase, setPhase] = useState<Phase>(() => {
-    if (initial.numberOne) return "done";
+    if (initial.submitted) return "done";
     if (!initial.started) return "intro";
     return initial.swipes.length >= initial.order.length ? "pick" : "deck";
   });
@@ -106,12 +115,15 @@ export function SwipeDeck({
   const begin = () =>
     start(async () => {
       setError("");
-      const res = await startVotingAction(turnstileToken);
+      const res = await startVotingAction(turnstileToken, readStoredReceipt());
       if (!res.ok) return setError(errorText(res.code));
+      storeReceipt(res.receipt);
       setOrder(res.order);
       setSwipes(res.swipes);
       setNumberOne(res.numberOne);
-      setPhase(res.numberOne ? "done" : res.swipes.length >= res.order.length ? "pick" : "deck");
+      setChoice(res.numberOne);
+      setSubmitted(res.submitted);
+      setPhase(res.submitted ? "done" : res.swipes.length >= res.order.length ? "pick" : "deck");
     });
 
   const decide = useCallback(
@@ -120,7 +132,8 @@ export function SwipeDeck({
       navigator.vibrate?.(10);
       const next = [...swipes, { entryId, liked: yes }];
       setSwipes(next);
-      if (next.length >= order.length) setPhase(next.some((s) => s.liked) ? "pick" : "done");
+      // The last card leads to the submit step, YEBOs or not: nothing counts as final yet.
+      if (next.length >= order.length) setPhase("pick");
       call(
         () => swipeAction(entryId, yes, refCode),
         () => setSwipes((s) => s.filter((x) => x.entryId !== entryId)),
@@ -295,42 +308,70 @@ export function SwipeDeck({
   }
 
   if (phase === "pick") {
+    const locked = Boolean(numberOne); // a number one already saved can't change
+    const submit = () =>
+      start(async () => {
+        setError("");
+        try {
+          if (choice && !numberOne) {
+            const one = await numberOneAction(choice, refCode);
+            if (!one.ok && one.code !== "already_voted") return setError(errorText(one.code));
+            setNumberOne(choice);
+          }
+          const res = await submitVoteAction();
+          if (res.ok || res.code === "already_submitted") {
+            setSubmitted(true);
+            setPhase("done");
+          } else setError(errorText(res.code));
+        } catch {
+          setError(v.errors.network);
+        }
+      });
     return (
       <section className="surface-dark min-h-[100svh] px-4 pt-8 pb-10">
         <div className="mx-auto max-w-md">
-          <h1 className="font-youth text-4xl leading-tight">{v.pickTitle}</h1>
-          <p className="mt-2 text-[var(--muted)]">{v.pickBody}</p>
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            {liked.map((c) => (
-              <button
-                key={c.entryId}
-                type="button"
-                disabled={pending}
-                onClick={() =>
-                  start(async () => {
-                    const res = await numberOneAction(c.entryId, refCode);
-                    if (res.ok || res.code === "already_voted") {
-                      setNumberOne(c.entryId);
-                      setPhase("done");
-                    }
-                    if (!res.ok) setError(errorText(res.code));
-                  })
-                }
-                className="overflow-hidden rounded-2xl text-left ring-1 ring-white/15 transition active:scale-[0.98]"
-              >
-                <span className="relative block aspect-[1200/1380]">
-                  <Image
-                    src={c.thumbUrl}
-                    alt={`${c.title}, ${c.colourwayName}`}
-                    fill
-                    sizes="50vw"
-                    className="object-cover"
-                  />
-                </span>
-                <span className="block p-2 text-sm font-bold">{c.title}</span>
-              </button>
-            ))}
-          </div>
+          <h1 className="font-youth text-4xl leading-tight">
+            {liked.length ? v.pickTitle : v.submitTitle}
+          </h1>
+          <p className="mt-2 text-[var(--muted)]">
+            {liked.length ? v.pickBodySubmit : v.submitBodyNoLikes}
+          </p>
+          {liked.length > 0 && (
+            <div className="mt-6 grid grid-cols-2 gap-3" role="radiogroup" aria-label={v.pickTitle}>
+              {liked.map((c) => {
+                const on = choice === c.entryId;
+                return (
+                  <button
+                    key={c.entryId}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    disabled={pending || locked}
+                    onClick={() => setChoice(on ? null : c.entryId)}
+                    className={`overflow-hidden rounded-2xl text-left transition active:scale-[0.98] ${
+                      on ? "ring-gold ring-4" : "ring-1 ring-white/15"
+                    }`}
+                  >
+                    <span className="relative block aspect-[1200/1380]">
+                      <Image
+                        src={c.thumbUrl}
+                        alt={`${c.title}, ${c.colourwayName}`}
+                        fill
+                        sizes="50vw"
+                        className="object-cover"
+                      />
+                      {on && (
+                        <span className="bg-gold text-onyx absolute top-2 right-2 rounded-full px-2 py-0.5 font-mono text-[10px] font-bold uppercase">
+                          {v.numberOneBadge}
+                        </span>
+                      )}
+                    </span>
+                    <span className="block p-2 text-sm font-bold">{c.title}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
           {error && (
             <p role="alert" className="text-coral mt-3 text-sm">
               {error}
@@ -338,10 +379,20 @@ export function SwipeDeck({
           )}
           <button
             type="button"
-            onClick={() => setPhase("done")}
-            className="mt-6 min-h-12 w-full rounded-full border border-white/20"
+            onClick={submit}
+            disabled={pending}
+            className="bg-gold text-onyx mt-6 inline-flex min-h-14 w-full items-center justify-center rounded-full px-6 text-lg font-bold transition active:scale-[0.98] disabled:opacity-60"
           >
-            {v.skip}
+            {pending ? v.submitting : v.submitVote}
+          </button>
+          <p className="mt-2 text-center text-xs text-[var(--muted)]">{v.submitNote}</p>
+          <button
+            type="button"
+            onClick={undo}
+            disabled={pending || swipes.length === 0}
+            className="mt-4 min-h-12 w-full rounded-full border border-white/20 text-sm"
+          >
+            ↶ {v.undoLast}
           </button>
         </div>
       </section>
@@ -355,6 +406,7 @@ export function SwipeDeck({
       numberOne={numberOne ? byId.get(numberOne) : undefined}
       refCode={refCode}
       error={error}
+      submitted={submitted}
     />
   );
 }
@@ -470,12 +522,14 @@ function Done({
   numberOne,
   refCode,
   error,
+  submitted,
 }: {
   liked: PublicEntryCard[];
   total: number;
   numberOne?: PublicEntryCard;
   refCode: string | null;
   error: string;
+  submitted: boolean;
 }) {
   const style = styleFor(liked);
   const name = v.styles[style];
@@ -484,13 +538,18 @@ function Done({
     refCode ?? "wa-share",
     "/vote",
   );
-  const [saved, setSaved] = useState(false);
-  const [pending, start] = useTransition();
-  const field = "mt-1 block min-h-12 w-full rounded-xl border border-white/20 bg-transparent px-3";
 
   return (
     <section className="surface-dark min-h-[100svh] px-4 pt-10 pb-10">
       <div className="mx-auto max-w-md">
+        {submitted && (
+          <p
+            role="status"
+            className="bg-lime/15 text-lime mb-4 rounded-2xl px-3 py-2 text-sm font-bold"
+          >
+            ✓ {v.voteIn}
+          </p>
+        )}
         <p className="text-lime font-mono text-xs tracking-[0.3em] uppercase">{v.doneEyebrow}</p>
         <h1 className="font-youth text-gold-shimmer mt-2 text-6xl leading-none">{name}</h1>
         <p className="mt-4 text-lg text-ivory/85">
@@ -523,50 +582,6 @@ function Done({
           </p>
         )}
 
-        <form
-          className="mt-8 rounded-2xl p-4 ring-1 ring-white/15"
-          action={(form) =>
-            start(async () => {
-              const res = await aboutYouAction(
-                (form.get("age") as string) || null,
-                (form.get("province") as string) || null,
-              );
-              setSaved(res.ok);
-            })
-          }
-        >
-          <h2 className="font-bold">{v.aboutYou}</h2>
-          <p className="text-sm text-[var(--muted)]">{v.aboutYouBody}</p>
-          <label className="mt-3 block text-sm">
-            {v.age}
-            <select name="age" defaultValue="" className={field}>
-              <option value="">{v.preferNot}</option>
-              {AGE_BRACKETS.map((a) => (
-                <option key={a} value={a}>
-                  {a}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="mt-3 block text-sm">
-            {v.province}
-            <select name="province" defaultValue="" className={field}>
-              <option value="">{v.preferNot}</option>
-              {PROVINCES.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            type="submit"
-            disabled={pending || saved}
-            className="mt-4 min-h-12 w-full rounded-full border border-white/20 font-semibold"
-          >
-            {saved ? `✓ ${v.savedAbout}` : v.saveAbout}
-          </button>
-        </form>
         <p className="mt-6 text-center font-mono text-xs text-[var(--muted)]">{v.resultsSoon}</p>
       </div>
     </section>

@@ -100,6 +100,11 @@ export async function submitPicksAction(roundId: string): Promise<PickResult> {
       now: new Date(),
     });
     revalidatePath("/members");
+    // An admin's picks may have joined the public vote: the landing strip and line pages
+    // show it.
+    for (const path of ["/", "/collection/eiteen", "/collection/g-tas", "/vote"]) {
+      revalidatePath(path);
+    }
     return { ok: true, roundClosed };
   });
 }

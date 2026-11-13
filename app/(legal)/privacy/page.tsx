@@ -25,24 +25,27 @@ export default function Privacy() {
 
       <h2 id="data">Data we collect</h2>
       <p>
-        <strong>When you vote.</strong> Voting works without any personal information. To keep it
-        fair we store:
+        <strong>When you vote, we keep your vote and nothing else.</strong> We never ask your name,
+        number, email, age, school or area. A vote is:
       </p>
       <ul>
         <li>
-          a scrambled (hashed) code for your device and one for your network. We cannot turn these
-          back into your IP address or device;
+          your YEBO or CHA on each design, your number one, and when you submitted (one vote per
+          phone);
         </li>
-        <li>your swipes and your vote;</li>
         <li>
           the share link you came from (for example &ldquo;fb&rdquo; or a WhatsApp group code), so
           we know which channels brought votes;
         </li>
         <li>
-          only if you choose to tell us: your age bracket, province, and school or area. These are
-          optional and anonymous.
+          a scrambled (hashed) code for your phone, made from a random number: it lets each phone
+          vote once and identifies no one. We cannot turn it back into anything about you.
         </li>
       </ul>
+      <p>
+        To stop spam, your network address is scrambled at once and used only for a few minutes to
+        limit how fast votes can arrive. It is never stored with your vote.
+      </p>
       <p>
         <strong>From anyone under 18, we never collect</strong> names, email addresses or phone
         numbers. An email sign-in option, if we ever switch it on, is only offered after you confirm
@@ -55,13 +58,16 @@ export default function Privacy() {
 
       <h2 id="why">Why we use it</h2>
       <ul>
-        <li>to allow one vote per device per round and stop automated voting;</li>
-        <li>to understand which designs different age groups, areas and channels like;</li>
+        <li>to allow one vote per phone per round and stop automated voting;</li>
+        <li>
+          to see which designs each line&rsquo;s audience likes (EITEEN for the youth, G-TAS for the
+          elders) and which channels brought votes;
+        </li>
         <li>to decide which designs we produce.</li>
       </ul>
       <p>
-        We rely on your consent for the optional details, and on our legitimate interest in a fair
-        vote for the hashed codes. We do not sell your information or use it for advertising.
+        We rely on our legitimate interest in a fair vote. We do not sell anything we hold or use it
+        for advertising.
       </p>
 
       <h2 id="children">Children</h2>
@@ -81,10 +87,10 @@ export default function Privacy() {
 
       <h2 id="retention">How long we keep it</h2>
       <p>
-        Individual votes and swipes are deleted 90 days after a round&rsquo;s results are published.
-        After that we keep only totals (for example, &ldquo;Kasi Halo: 312 votes from 16&ndash;17
-        year olds in KZN&rdquo;). Team members&rsquo; details are kept while they are on the team
-        and deleted on request.
+        Individual votes, swipes and the hashed codes above are deleted 90 days after a
+        round&rsquo;s results are published. After that we keep only totals (for example,
+        &ldquo;Kasi Halo: 312 votes from 16&ndash;17 year olds in KZN&rdquo;). Team members&rsquo;
+        details are kept while they are on the team and deleted on request.
       </p>
 
       <h2 id="cookies">Cookies</h2>
@@ -98,6 +104,12 @@ export default function Privacy() {
         While you browse, your browser also keeps the share-link code you arrived with (for example
         &ldquo;wa-share&rdquo;) for that tab, so your vote counts towards the link that brought you.
         It is not a cookie, holds no personal information, and is cleared when you close the tab.
+      </p>
+      <p>
+        When you start voting, your browser&rsquo;s storage also keeps a signed{" "}
+        <strong>vote receipt</strong>: the same random device code as the cookie, so that clearing
+        cookies alone does not open a second vote on the same phone. It holds no personal
+        information and is used for nothing else.
       </p>
       <p>
         Team members also get <strong>one sign-in cookie</strong> after opening their personal

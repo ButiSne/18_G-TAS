@@ -329,7 +329,8 @@ export type PublicResults = {
   ranked: (RankedEntry & { card: PublicEntryCard })[];
   devices: number;
   byRef: { ref: string; devices: number }[];
-  byAge: { ageBracket: string; devices: number }[];
+  /** YEBOs and swipes per line: EITEEN for the youth, G-TAS for the elders. */
+  byLine: { line: "EITEEN" | "G-TAS"; designs: number; likes: number; swipes: number }[];
 };
 
 /** Results for one public round: ranking, and how many devices each channel brought. */
@@ -381,21 +382,23 @@ export async function publicResults(db: Db, publicRoundId: string): Promise<Publ
     .where(eq(swipe.publicRoundId, publicRoundId))
     .groupBy(sql`1`)
     .orderBy(sql`2 desc`);
-  const byAge = await db
-    .select({
-      ageBracket: sql<string>`coalesce(${swipe.ageBracket}, 'not given')`,
-      devices: sql<number>`count(distinct ${swipe.deviceHash})::int`,
-    })
-    .from(swipe)
-    .where(eq(swipe.publicRoundId, publicRoundId))
-    .groupBy(sql`1`)
-    .orderBy(sql`1`);
+  // No one is asked their age or area (owner, Nov 2026): each design's line tells us
+  // which audience a vote speaks for.
+  const byLine = (["EITEEN", "G-TAS"] as const).map((line) => {
+    const rows = ranked.filter((r) => byCard.get(r.entryId)?.line === line);
+    return {
+      line,
+      designs: rows.length,
+      likes: rows.reduce((n, r) => n + r.likes, 0),
+      swipes: rows.reduce((n, r) => n + r.swipes, 0),
+    };
+  });
 
   return {
     ranked: ranked.map((r) => ({ ...r, card: byCard.get(r.entryId)! })),
     devices: devices?.n ?? 0,
     byRef,
-    byAge,
+    byLine,
   };
 }
 

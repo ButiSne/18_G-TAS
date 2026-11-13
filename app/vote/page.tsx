@@ -62,6 +62,7 @@ export default async function Vote({ searchParams }: Props) {
     order: [] as string[],
     swipes: [] as { entryId: string; liked: boolean }[],
     numberOne: null as string | null,
+    submitted: false,
   };
   if (secrets && voter && isVerified(voter, new Date())) {
     // A returning phone resumes where it left off, in the same order.

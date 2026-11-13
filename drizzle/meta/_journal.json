@@ -57,6 +57,13 @@
       "when": 1794560403639,
       "tag": "0007_admin_curator_picks",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794564129172,
+      "tag": "0008_one_vote_per_phone",
+      "breakpoints": true
     }
   ]
 }

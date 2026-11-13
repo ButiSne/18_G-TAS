@@ -30,6 +30,18 @@ Where this section and the rest of the brief disagree, **this section wins**.
    - **First admin:** gets their link from `pnpm invite "<name>"`.
    - **No email:** no email service or domain is needed, so Resend and Auth.js are not used.
    - **`/designs` stays team-only until the public vote**, so unreleased designs never leak.
+10. **The admin picks too (agreed 13 Nov 2026).**
+    - **Curator role:** the 18 G-TAS admin ticks any number of designs (`round_member.role = curator`), unranked.
+    - **No points, guaranteed places:** admin picks earn no Borda points, so the team's ranking is untouched. Every one goes into the public YEBO/CHA deck and the landing strip, on top of the team's cut, flagged `shortlist.admin_choice`.
+    - **Hidden until close,** like everyone's picks.
+    - **The round waits for the admin:** an admin ticked in "Who picks" must submit before the round closes.
+    - **Joining late:** after the team has finished, `/admin` reopens the round for the admin alone, and members' submitted picks stay locked. After the shortlist is confirmed, the admin can still add picks until the public vote opens; they go straight into it.
+11. **The public gives their vote and nothing else (agreed 13 Nov 2026).**
+    - **No demographics:** no age bracket, province, school or area; this overrides §2 "Demographics" and the §5 demographic columns, which stay empty. Each design's line (EITEEN or G-TAS) tells us which audience a vote speaks for, and results split by line.
+    - **What a vote keeps:** the design, YEBO or CHA, the number one, the share link (`?ref=`), and a salted hash of a random device code.
+    - **No IP or fingerprint:** no IP hash is stored with votes; it's used only briefly for rate limits. No device fingerprint is collected.
+    - **One submission per phone:** after the last card the voter taps **Submit my vote**, and the `ballot` row makes that phone's vote final.
+    - **Recognising the phone:** by its signed cookie and by a signed receipt in its own storage, so clearing cookies alone doesn't open a second vote. A private window or a second browser can still vote; stopping that would need data we don't collect.
 
 ---
 
