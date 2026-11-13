@@ -1,15 +1,22 @@
-// Stage 2 for the public (CLAUDE.md §0.7, §2): swipes, undo, the one "number one" vote,
-// and optional demographics. Everything is keyed by a salted device hash; nothing here
-// can identify a person. Plain functions taking `db`, tested against Postgres.
+// Stage 2 for the public (CLAUDE.md §0.7, §2): swipes, undo, the one "number one" vote, and
+// the single submission per phone. Nothing but the vote is kept (owner, Nov 2026): each
+// row holds the design, YEBO or CHA, the share link it came from, and a salted device hash
+// so a phone votes once. No IP, no age, no area. Plain functions taking `db`, tested
+// against Postgres.
 
 import { and, eq } from "drizzle-orm";
 import type { createDb } from "../db/client.ts";
-import { publicEntry, publicRound, swipe, vote } from "../db/schema.ts";
-import { AGE_BRACKETS, PROVINCES } from "./demographics.ts";
+import { ballot, publicEntry, publicRound, swipe, vote } from "../db/schema.ts";
 
 type Db = ReturnType<typeof createDb>;
 
-export type VoteErrorCode = "not_open" | "unknown_entry" | "not_liked" | "already_voted";
+export type VoteErrorCode =
+  | "not_open"
+  | "unknown_entry"
+  | "not_liked"
+  | "already_voted"
+  | "already_submitted"
+  | "nothing_to_submit";
 
 // Explicit field, not a parameter property: plain Node (scripts) strips types only.
 export class VoteError extends Error {
@@ -35,7 +42,41 @@ async function openEntry(db: Db, publicRoundId: string, entryId: string) {
   if (!row.entryId) throw new VoteError("unknown_entry");
 }
 
-/** This phone's swipes and number one in a round (to resume where it left off). */
+/** Once a phone has submitted, its vote is final: nothing more can change. */
+async function assertNotSubmitted(db: Db, v: Voter) {
+  const [done] = await db
+    .select({ id: ballot.id })
+    .from(ballot)
+    .where(and(eq(ballot.publicRoundId, v.publicRoundId), eq(ballot.deviceHash, v.deviceHash)));
+  if (done) throw new VoteError("already_submitted");
+}
+
+/**
+ * Submits this phone's vote, once (owner's rule): its swipes and number one become final.
+ * Needs at least one swipe. The ballot_once_per_device constraint is the final guard.
+ */
+export async function submitBallot(db: Db, v: Voter) {
+  const [round] = await db
+    .select({ status: publicRound.status })
+    .from(publicRound)
+    .where(eq(publicRound.id, v.publicRoundId));
+  if (round?.status !== "open") throw new VoteError("not_open");
+  await assertNotSubmitted(db, v);
+  const [any] = await db
+    .select({ id: swipe.id })
+    .from(swipe)
+    .where(and(eq(swipe.publicRoundId, v.publicRoundId), eq(swipe.deviceHash, v.deviceHash)))
+    .limit(1);
+  if (!any) throw new VoteError("nothing_to_submit");
+  const inserted = await db
+    .insert(ballot)
+    .values({ publicRoundId: v.publicRoundId, deviceHash: v.deviceHash })
+    .onConflictDoNothing({ target: [ballot.publicRoundId, ballot.deviceHash] })
+    .returning({ id: ballot.id });
+  if (inserted.length === 0) throw new VoteError("already_submitted");
+}
+
+/** This phone's swipes, number one and whether it has submitted (to resume or to thank). */
 export async function voterState(db: Db, v: Voter) {
   const swipes = await db
     .select({ entryId: swipe.entryId, liked: swipe.liked })
@@ -45,22 +86,26 @@ export async function voterState(db: Db, v: Voter) {
     .select({ entryId: vote.entryId })
     .from(vote)
     .where(and(eq(vote.publicRoundId, v.publicRoundId), eq(vote.deviceHash, v.deviceHash)));
-  return { swipes, numberOne: one?.entryId ?? null };
+  const [done] = await db
+    .select({ id: ballot.id })
+    .from(ballot)
+    .where(and(eq(ballot.publicRoundId, v.publicRoundId), eq(ballot.deviceHash, v.deviceHash)));
+  return { swipes, numberOne: one?.entryId ?? null, submitted: Boolean(done) };
 }
 
-/** YEBO (liked) or CHA. Swiping the same design again replaces the earlier swipe. */
+/** YEBO (liked) or CHA. Until the phone submits, swiping again replaces the earlier swipe. */
 export async function recordSwipe(
   db: Db,
-  v: Voter & { entryId: string; ipHash: string; liked: boolean; ref: string | null },
+  v: Voter & { entryId: string; liked: boolean; ref: string | null },
 ) {
   await openEntry(db, v.publicRoundId, v.entryId);
+  await assertNotSubmitted(db, v);
   await db
     .insert(swipe)
     .values({
       publicRoundId: v.publicRoundId,
       entryId: v.entryId,
       deviceHash: v.deviceHash,
-      ipHash: v.ipHash,
       liked: v.liked,
       ref: v.ref,
     })
@@ -72,6 +117,7 @@ export async function recordSwipe(
 
 export async function undoSwipe(db: Db, v: Voter & { entryId: string }) {
   await openEntry(db, v.publicRoundId, v.entryId);
+  await assertNotSubmitted(db, v);
   await db
     .delete(swipe)
     .where(
@@ -87,11 +133,9 @@ export async function undoSwipe(db: Db, v: Voter & { entryId: string }) {
  * The single favourite vote: one per phone per round (the vote_one_per_device constraint
  * is the final guard), and only for a design this phone said YEBO to.
  */
-export async function chooseNumberOne(
-  db: Db,
-  v: Voter & { entryId: string; ipHash: string; ref: string | null },
-) {
+export async function chooseNumberOne(db: Db, v: Voter & { entryId: string; ref: string | null }) {
   await openEntry(db, v.publicRoundId, v.entryId);
+  await assertNotSubmitted(db, v);
   const [liked] = await db
     .select({ liked: swipe.liked })
     .from(swipe)
@@ -109,27 +153,9 @@ export async function chooseNumberOne(
       publicRoundId: v.publicRoundId,
       entryId: v.entryId,
       deviceHash: v.deviceHash,
-      ipHash: v.ipHash,
       ref: v.ref,
     })
     .onConflictDoNothing({ target: [vote.publicRoundId, vote.deviceHash] })
     .returning({ id: vote.id });
   if (inserted.length === 0) throw new VoteError("already_voted");
-}
-
-/** Optional and anonymous: an age bracket and a province, applied to this phone's rows. */
-export async function saveDemographics(
-  db: Db,
-  v: Voter & { ageBracket: string | null; province: string | null },
-) {
-  const age = (AGE_BRACKETS as readonly string[]).includes(v.ageBracket ?? "")
-    ? v.ageBracket
-    : null;
-  const province = (PROVINCES as readonly string[]).includes(v.province ?? "") ? v.province : null;
-  if (!age && !province) return;
-  const set = { ...(age ? { ageBracket: age } : {}), ...(province ? { province } : {}) };
-  const where = (t: typeof swipe | typeof vote) =>
-    and(eq(t.publicRoundId, v.publicRoundId), eq(t.deviceHash, v.deviceHash));
-  await db.update(swipe).set(set).where(where(swipe));
-  await db.update(vote).set(set).where(where(vote));
 }

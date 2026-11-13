@@ -4,7 +4,12 @@ import { buttonGhost, buttonPrimary, TeamHeader } from "@/src/components/team-ui
 import { getDb } from "@/src/db/server";
 import { requireMember } from "@/src/lib/auth/session";
 import { fill, getMessages } from "@/src/lib/messages";
-import { currentRound, myRoundState, roundProgress } from "@/src/lib/team-round";
+import {
+  adminPicksWindowOpen,
+  currentRound,
+  myRoundState,
+  roundProgress,
+} from "@/src/lib/team-round";
 import { signOutAction } from "./actions";
 
 const t = getMessages();
@@ -17,6 +22,11 @@ export default async function MembersHome() {
   const db = getDb()!;
   const round = await currentRound(db);
   const mine = round ? await myRoundState(db, round.id, me.id) : null;
+  const adminWindow =
+    round?.status === "published" &&
+    mine?.role === "curator" &&
+    !mine.submittedAt &&
+    (await adminPicksWindowOpen(db, round.id));
   const progress = round ? await roundProgress(db, round.id) : null;
 
   return (
@@ -35,7 +45,7 @@ export default async function MembersHome() {
           {round ? r.statusLabel[round.status as keyof typeof r.statusLabel] : r.statusLabel.draft}
         </p>
         <RoundCard
-          status={round?.status ?? "draft"}
+          status={adminWindow ? "open" : (round?.status ?? "draft")}
           n={round?.picksPerMember ?? 6}
           mine={mine}
           progress={progress}

@@ -1,6 +1,6 @@
 // The public vote against Postgres (gtas_test): swipes only while open and only for this
 // round's entries, undo, one number-one vote per phone (refused politely the second time),
-// and optional demographics.
+// one submission per phone after which nothing changes, and nothing kept but the vote.
 
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
@@ -11,7 +11,7 @@ import { publicResults } from "@/src/lib/stages";
 import {
   chooseNumberOne,
   recordSwipe,
-  saveDemographics,
+  submitBallot,
   undoSwipe,
   VoteError,
   voterState,
@@ -23,7 +23,7 @@ const db = drizzle(sql, { schema });
 let roundId = "";
 let otherRoundEntry = "";
 let e: string[] = [];
-const phone = (deviceHash: string) => ({ publicRoundId: roundId, deviceHash, ipHash: "iphash" });
+const phone = (deviceHash: string) => ({ publicRoundId: roundId, deviceHash });
 
 const code = async (p: Promise<unknown>) => {
   try {
@@ -111,18 +111,33 @@ describe("public vote", () => {
     expect((await voterState(db, phone("p1"))).numberOne).toBe(e[1]);
   });
 
-  it("applies optional demographics to this phone only, ignoring made-up values", async () => {
+  it("submits once per phone, after which nothing can change", async () => {
+    expect(await code(submitBallot(db, phone("p9")))).toBe("nothing_to_submit");
+    expect(await code(submitBallot(db, phone("p1")))).toBe("ok");
+    expect((await voterState(db, phone("p1"))).submitted).toBe(true);
+    expect(await code(submitBallot(db, phone("p1")))).toBe("already_submitted");
+    expect(
+      await code(recordSwipe(db, { ...phone("p1"), entryId: e[2]!, liked: true, ref: null })),
+    ).toBe("already_submitted");
+    expect(await code(undoSwipe(db, { ...phone("p1"), entryId: e[1]! }))).toBe("already_submitted");
+    // Another phone is unaffected.
     await recordSwipe(db, { ...phone("p2"), entryId: e[0]!, liked: true, ref: null });
-    await saveDemographics(db, { ...phone("p1"), ageBracket: "16-17", province: "Mars" });
-    const rows = await sql<
-      { device_hash: string; age_bracket: string | null; province: string | null }[]
-    >`
-      select device_hash, age_bracket, province from swipe order by device_hash`;
-    expect(rows.filter((r) => r.device_hash === "p1").every((r) => r.age_bracket === "16-17")).toBe(
-      true,
+    expect((await voterState(db, phone("p2"))).submitted).toBe(false);
+  });
+
+  it("keeps nothing but the vote: no IP, no age, no area", async () => {
+    const swipes = await sql<{ n: number }[]>`
+      select count(*)::int as n from swipe
+      where ip_hash is not null or age_bracket is not null or province is not null`;
+    const votes = await sql<{ n: number }[]>`
+      select count(*)::int as n from vote
+      where ip_hash is not null or age_bracket is not null or province is not null or area is not null`;
+    expect([swipes[0]!.n, votes[0]!.n]).toEqual([0, 0]);
+    const cols = await sql<{ column_name: string }[]>`
+      select column_name from information_schema.columns where table_name = 'ballot'`;
+    expect(cols.map((c) => c.column_name).sort()).toEqual(
+      ["device_hash", "id", "public_round_id", "submitted_at"].sort(),
     );
-    expect(rows.every((r) => r.province === null)).toBe(true);
-    expect(rows.find((r) => r.device_hash === "p2")?.age_bracket).toBeNull();
   });
 
   it("feeds the results, then refuses swipes once voting closes", async () => {

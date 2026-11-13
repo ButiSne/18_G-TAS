@@ -17,11 +17,17 @@ import {
   voteSecrets,
   writeVoterCookie,
 } from "@/src/lib/vote-session";
-import { newDeviceToken, saltedHash, VERIFIED_FOR_MS } from "@/src/lib/voter";
+import {
+  newDeviceToken,
+  readReceipt,
+  saltedHash,
+  signReceipt,
+  VERIFIED_FOR_MS,
+} from "@/src/lib/voter";
 import {
   chooseNumberOne,
   recordSwipe,
-  saveDemographics,
+  submitBallot,
   undoSwipe,
   VoteError,
   voterState,
@@ -34,6 +40,9 @@ export type StartResult =
       order: string[];
       swipes: { entryId: string; liked: boolean }[];
       numberOne: string | null;
+      submitted: boolean;
+      /** The signed receipt the phone keeps in its own storage (see signReceipt). */
+      receipt: string;
     }
   | { ok: false; code: string };
 
@@ -53,8 +62,16 @@ async function orderFor(publicRoundId: string, deviceHash: string) {
   return seededShuffle(ids, deviceHash.slice(0, 12));
 }
 
-/** "Let's go": checks for bots once, then this phone may swipe for the next 6 hours. */
-export async function startVotingAction(turnstileToken: string | null): Promise<StartResult> {
+/**
+ * "Let's go": checks for bots once, then this phone may swipe for the next 6 hours.
+ * One phone, one vote: the phone is recognised by its cookie, else by the signed receipt in
+ * its own storage, so clearing cookies alone does not open a second vote. Nothing else about
+ * the phone is collected (owner, Nov 2026).
+ */
+export async function startVotingAction(
+  turnstileToken: string | null,
+  receipt: string | null = null,
+): Promise<StartResult> {
   const secrets = voteSecrets();
   const roundId = await openRoundId();
   if (!secrets) return { ok: false, code: "not_ready" };
@@ -66,13 +83,19 @@ export async function startVotingAction(turnstileToken: string | null): Promise<
   if (!(await verifyTurnstile(turnstileToken))) return { ok: false, code: "bot" };
 
   const existing = await readVoterCookie(secrets.secret);
-  const token = existing?.d ?? newDeviceToken();
+  const token = existing?.d ?? readReceipt(receipt, secrets.secret) ?? newDeviceToken();
   await writeVoterCookie({ d: token, v: Date.now() + VERIFIED_FOR_MS }, secrets.secret);
   const deviceHash = saltedHash(token, secrets.salt);
   const state = await voterState(getDb()!, { publicRoundId: roundId, deviceHash });
-  return { ok: true, order: await orderFor(roundId, deviceHash), ...state };
+  return {
+    ok: true,
+    order: await orderFor(roundId, deviceHash),
+    ...state,
+    receipt: signReceipt(token, secrets.secret),
+  };
 }
 
+/** ipHash keys the speed limits only; it is never written to a vote. */
 type Voter = { publicRoundId: string; deviceHash: string; ipHash: string };
 
 /** Runs a vote step for this phone, after its session and rate limits are checked. */
@@ -106,7 +129,13 @@ const finishLimits = (v: Voter): [string, Limit][] => [
 export async function swipeAction(entryId: string, liked: boolean, ref: string | null) {
   if (!uuid.safeParse(entryId).success) return { ok: false, code: "unknown_entry" } as VoteResult;
   return asVoter(swipeLimits, (v) =>
-    recordSwipe(getDb()!, { ...v, entryId, liked: liked === true, ref: normaliseRef(ref) }),
+    recordSwipe(getDb()!, {
+      publicRoundId: v.publicRoundId,
+      deviceHash: v.deviceHash,
+      entryId,
+      liked: liked === true,
+      ref: normaliseRef(ref),
+    }),
   );
 }
 
@@ -118,17 +147,18 @@ export async function undoAction(entryId: string) {
 export async function numberOneAction(entryId: string, ref: string | null) {
   if (!uuid.safeParse(entryId).success) return { ok: false, code: "unknown_entry" } as VoteResult;
   return asVoter(finishLimits, (v) =>
-    chooseNumberOne(getDb()!, { ...v, entryId, ref: normaliseRef(ref) }),
+    chooseNumberOne(getDb()!, {
+      publicRoundId: v.publicRoundId,
+      deviceHash: v.deviceHash,
+      entryId,
+      ref: normaliseRef(ref),
+    }),
   );
 }
 
-export async function aboutYouAction(ageBracket: string | null, province: string | null) {
+/** Submits this phone's vote: final, once. */
+export async function submitVoteAction() {
   return asVoter(finishLimits, (v) =>
-    saveDemographics(getDb()!, {
-      publicRoundId: v.publicRoundId,
-      deviceHash: v.deviceHash,
-      ageBracket: ageBracket ? String(ageBracket).slice(0, 10) : null,
-      province: province ? String(province).slice(0, 30) : null,
-    }),
+    submitBallot(getDb()!, { publicRoundId: v.publicRoundId, deviceHash: v.deviceHash }),
   );
 }

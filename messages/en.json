@@ -27,7 +27,7 @@
       "stamp": "Unreleased",
       "revealEyebrow": "The shortlist is in",
       "revealTitle": "{count} designs made the cut. You decide.",
-      "revealBody": "The team picked these from {total} new designs. Swipe each one YEBO or CHA, then choose your number one.",
+      "revealBody": "The team and the 18 G-TAS admin picked these from {total} new designs. Swipe each one YEBO or CHA, choose your number one, then submit. One vote per phone.",
       "ctaVote": "Make your choice: YEBO or CHA",
       "ctaSoon": "Voting opens soon. Tell your crew",
       "ctaResults": "See the results"
@@ -53,11 +53,11 @@
       "steps": {
         "team": {
           "title": "The team picks",
-          "body": "Our team ranks every new design in private and builds a shortlist."
+          "body": "Our team ranks every new design in private, and the 18 G-TAS admin adds their own choices. Together they make the shortlist."
         },
         "public": {
           "title": "You swipe",
-          "body": "Open the link from our Facebook page or your WhatsApp group. Swipe right for YEBO, left for CHA. No account needed."
+          "body": "Open the link from our Facebook page or your WhatsApp group. Swipe right for YEBO, left for CHA, then submit. One vote per phone, no account needed."
         },
         "final": {
           "title": "Ten tees drop",
@@ -235,7 +235,8 @@
       "not_picked": "You can only add a note to a design you ticked.",
       "too_long": "That note is too long. Keep it under the limit.",
       "not_admin": "Only an admin can do that.",
-      "not_closed": "The shortlist is already confirmed, so the team round can't be reopened."
+      "not_closed": "The shortlist is already confirmed, so the team round can't be reopened.",
+      "vote_started": "The public vote has started, so admin picks can no longer be added."
     },
     "resultsTitle": "Team results",
     "resultsHidden": "Results open when everyone has submitted, so nobody is swayed by anyone else.",
@@ -280,7 +281,9 @@
     "adminChoice": "Admin's choice",
     "adminPicksTitle": "Admin's picks",
     "adminPicksBody": "No points. Every one goes straight into the public YEBO or CHA vote.",
-    "adminPicksRole": "Admin · any number"
+    "adminPicksRole": "Admin · any number",
+    "adminPicksWindowBody": "The shortlist is confirmed and the public vote hasn't started, so you can still add your admin picks. Every one goes straight into the public vote when you submit. The team's picks and points stay exactly as they are.",
+    "adminPicksAdded": "Your {count} admin picks are in the public vote."
   },
   "admin": {
     "nav": {
@@ -324,7 +327,6 @@
     "swipes": "swipes",
     "numberOne": "number-one votes",
     "byChannel": "By channel",
-    "byAge": "By age",
     "finalTitle": "Final ten",
     "finalLead": "Choose exactly 5 sublimation and 5 other designs, with team points and public results side by side.",
     "finalCount": "Sublimation {sub} of 5 · Other {other} of 5",
@@ -346,7 +348,8 @@
     },
     "adminExtrasTitle": "+ {count} admin picks on top",
     "adminExtrasBody": "Your admin picks that didn't make the team's cut. They join the public vote anyway, with no points.",
-    "deckTotal": "{count} designs in the public vote (plus any you settle in a tie below)."
+    "deckTotal": "{count} designs in the public vote (plus any you settle in a tie below).",
+    "byLine": "By line (YEBO rate · designs)"
   },
   "vote": {
     "soonTitle": "Voting opens soon",
@@ -356,10 +359,10 @@
     "seeResults": "See the results",
     "introEyebrow": "18 G-TAS · First look",
     "introTitle": "{count} designs. Nobody has seen them yet.",
-    "introBody": "Swipe right for YEBO, left for CHA. It takes about a minute, and you don’t need an account.",
+    "introBody": "Swipe right for YEBO, left for CHA, then submit. It takes about a minute, one vote per phone, and you don’t need an account.",
     "start": "Let’s go",
     "starting": "Getting ready…",
-    "privacyNote": "No name, number or email needed.",
+    "privacyNote": "Only your vote is kept: no name, number or email.",
     "privacyLink": "How we keep it fair",
     "yebo": "YEBO",
     "cha": "CHA",
@@ -386,13 +389,6 @@
     "yourOne": "Your number one",
     "share": "Share your style on WhatsApp",
     "shareText": "My 18 G-TAS style is {style}. 18 G-TAS is back after 18 years. Swipe yours:",
-    "aboutYou": "Tell us about you (optional)",
-    "aboutYouBody": "Anonymous. It helps us see what different ages and places like.",
-    "age": "Age",
-    "province": "Province",
-    "preferNot": "Prefer not to say",
-    "saveAbout": "Save",
-    "savedAbout": "Thank you!",
     "resultsSoon": "Results drop when voting closes.",
     "resultsTitle": "The results",
     "resultsHidden": "Results drop when voting closes. Check back soon.",
@@ -407,8 +403,19 @@
       "session": "Your session expired. Please reload and tap Let’s go again.",
       "not_ready": "Voting isn’t ready yet.",
       "network": "No connection. Check your data and try again.",
-      "rate_limited": "Easy, speedy. Wait a moment and try again."
-    }
+      "rate_limited": "Easy, speedy. Wait a moment and try again.",
+      "already_submitted": "This phone has already voted in this round. Thank you!",
+      "nothing_to_submit": "Swipe at least one design before you submit."
+    },
+    "pickBodySubmit": "Tap your favourite of the designs you said YEBO to (optional), then submit your vote.",
+    "submitTitle": "Ready to submit?",
+    "submitBodyNoLikes": "You said CHA to every design. That counts too: submit your vote.",
+    "numberOneBadge": "No. 1",
+    "submitVote": "Submit my vote",
+    "submitting": "Submitting…",
+    "submitNote": "One vote per phone. Once you submit, your vote is final.",
+    "undoLast": "Undo my last swipe",
+    "voteIn": "Your vote is in. One vote per phone, and this one is yours."
   },
   "collection": {
     "eiteen": {

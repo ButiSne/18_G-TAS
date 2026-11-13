@@ -4,8 +4,10 @@ import {
   clientIp,
   isVerified,
   newDeviceToken,
+  readReceipt,
   readVoter,
   saltedHash,
+  signReceipt,
   signVoter,
 } from "@/src/lib/voter";
 
@@ -60,5 +62,24 @@ describe("styleFor", () => {
     expect(styleFor([g, g, g, e])).toBe("luxe");
     expect(styleFor([e, g])).toBe("classic");
     expect(styleFor([])).toBe("picky");
+  });
+});
+
+describe("vote receipt (one submission per phone)", () => {
+  const key = "s".repeat(32);
+  const token = "a".repeat(32);
+
+  it("signs a receipt that only this key can read back", () => {
+    const r = signReceipt(token, key);
+    expect(readReceipt(r, key)).toBe(token);
+    expect(readReceipt(r, "other-secret")).toBeNull();
+    expect(readReceipt(`${"b".repeat(32)}.${r.split(".")[1]}`, key)).toBeNull();
+    expect(readReceipt(42, key)).toBeNull();
+  });
+
+  it("is never accepted as a voter cookie, nor the cookie as a receipt", () => {
+    const cookie = signVoter({ d: token, v: 1 }, key);
+    expect(readReceipt(cookie, key)).toBeNull();
+    expect(readVoter(signReceipt(token, key), key)).toBeNull();
   });
 });

@@ -5,7 +5,7 @@ import { getDb } from "@/src/db/server";
 import { requireMember } from "@/src/lib/auth/session";
 import { loadCatalogue } from "@/src/lib/catalogue";
 import { fill, getMessages } from "@/src/lib/messages";
-import { currentRound, myRoundState } from "@/src/lib/team-round";
+import { adminPicksWindowOpen, currentRound, myRoundState } from "@/src/lib/team-round";
 
 const t = getMessages();
 
@@ -15,9 +15,15 @@ export default async function Picks() {
   const me = await requireMember();
   const db = getDb()!;
   const round = await currentRound(db);
-  if (!round || round.status !== "open") redirect("/members");
+  if (!round) redirect("/members");
   const mine = await myRoundState(db, round.id, me.id);
   if (!mine.inRound) redirect("/members");
+  // The admin may still add picks after the shortlist, until the public vote starts.
+  const adminWindow =
+    round.status === "published" &&
+    mine.role === "curator" &&
+    (await adminPicksWindowOpen(db, round.id));
+  if (round.status !== "open" && !adminWindow) redirect("/members");
   const designs = await loadCatalogue(db);
 
   return (
