@@ -27,7 +27,7 @@
       "stamp": "Unreleased",
       "revealEyebrow": "The shortlist is in",
       "revealTitle": "{count} designs made the cut. You decide.",
-      "revealBody": "The team and the 18 G-TAS admin picked these from {total} new designs. Swipe each one YEBO or CHA, choose your number one, then submit. One vote per phone.",
+      "revealBody": "Picked by the 18 G-TAS team from {total} new designs. Swipe each one YEBO or CHA, choose your number one, then submit. One vote per phone.",
       "ctaVote": "Make your choice: YEBO or CHA",
       "ctaSoon": "Voting opens soon. Tell your crew",
       "ctaResults": "See the results"
@@ -53,7 +53,7 @@
       "steps": {
         "team": {
           "title": "The team picks",
-          "body": "Our team ranks every new design in private, and the 18 G-TAS admin adds their own choices. Together they make the shortlist."
+          "body": "Behind the scenes, the 18 G-TAS team narrows every new design down to a shortlist."
         },
         "public": {
           "title": "You swipe",
@@ -61,7 +61,7 @@
         },
         "final": {
           "title": "Ten tees drop",
-          "body": "Your votes and the team's picks choose ten tees for the comeback drop: five sublimation, five in other prints."
+          "body": "Your votes help choose the ten tees that go to print for the comeback drop."
         }
       }
     },
@@ -85,7 +85,9 @@
     "copyright": "© {year} 18 G-TAS Custom Clothing & Design, trading as 18 G-TAS. All rights reserved.",
     "ip": "All designs, artwork, the 18 mark, EITEEN and XVIII · G-TAS belong to 18 G-TAS. Do not copy, print or sell them.",
     "affiliation": "18 G-TAS is not affiliated with any football club, federation or sportswear brand.",
-    "groupNote": "“Contact us” opens the 18 G-TAS WhatsApp group, where other members can see your number. Under 18? Ask a parent or guardian first. For anything private (your data, a privacy request, team sign-in), message us directly on {number}."
+    "groupNote": "“Contact us” opens the 18 G-TAS WhatsApp group, where other members can see your number. Under 18? Ask a parent or guardian first. For anything private (your data, a privacy request, team sign-in), message us directly on {number}.",
+    "teamLabel": "For the 18 G-TAS team",
+    "teamLink": "Team sign-in"
   },
   "legal": {
     "home": "18 G-TAS",

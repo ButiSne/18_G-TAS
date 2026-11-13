@@ -48,6 +48,14 @@ export function SiteFooter() {
           <p>{f.ip}</p>
           <p>{f.affiliation}</p>
         </div>
+
+        {/* Team and admin pages sit behind sign-in; this is their only door from here. */}
+        <p className="mt-6 border-t border-[var(--line)] pt-4 font-mono text-[11px] tracking-[0.2em] text-[var(--muted)] uppercase">
+          {f.teamLabel} ·{" "}
+          <Link href="/members/signin" className="underline underline-offset-4">
+            {f.teamLink}
+          </Link>
+        </p>
       </div>
     </footer>
   );
