@@ -93,6 +93,16 @@ function RoundCard({
       </>
     );
   }
+  if (mine.role === "curator") {
+    return (
+      <>
+        {p(r.curatorHome)}
+        <Link href="/members/picks" className={`${buttonPrimary} mt-4`}>
+          {fill(r.curatorCta, { count: mine.designIds.length })}
+        </Link>
+      </>
+    );
+  }
   return (
     <>
       {p(fill(r.homeOpen, { n }))}

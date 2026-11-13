@@ -23,9 +23,13 @@ export default async function Picks() {
   return (
     <div className="-mx-4 px-4">
       <TeamHeader />
-      <h1 className="font-luxe mt-8 text-4xl">{t.round.title}</h1>
+      <h1 className="font-luxe mt-8 text-4xl">
+        {mine.role === "curator" ? t.round.curatorTitle : t.round.title}
+      </h1>
       <p className="mt-2 text-[var(--muted)]">
-        {fill(t.round.homeOpen, { n: round.picksPerMember })}
+        {mine.role === "curator"
+          ? t.round.curatorHome
+          : fill(t.round.homeOpen, { n: round.picksPerMember })}
       </p>
       <PicksBoard
         designs={designs}
@@ -35,6 +39,7 @@ export default async function Picks() {
         initialNotes={mine.notes}
         initialSuggestion={mine.suggestion}
         locked={Boolean(mine.submittedAt)}
+        unlimited={mine.role === "curator"}
       />
     </div>
   );

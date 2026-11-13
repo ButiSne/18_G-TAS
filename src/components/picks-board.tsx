@@ -24,6 +24,7 @@ const errorText = (res: PickResult) =>
  * bottom, and a review sheet to reorder (arrow buttons work on touch and keyboard alike),
  * remove and submit. Every change saves to the server, so nothing is lost on a dropped tab.
  * Each ticked design can carry a comment or suggestion, and the round one free suggestion.
+ * `unlimited` is the admin's mode: tick any number, no ranking, no points.
  */
 export function PicksBoard({
   designs,
@@ -33,6 +34,7 @@ export function PicksBoard({
   initialNotes = {},
   initialSuggestion = null,
   locked,
+  unlimited = false,
 }: {
   designs: CatalogueDesign[];
   roundId: string;
@@ -41,6 +43,7 @@ export function PicksBoard({
   initialNotes?: Record<string, PickNote>;
   initialSuggestion?: string | null;
   locked: boolean;
+  unlimited?: boolean;
 }) {
   const router = useRouter();
   const [ids, setIds] = useState(initial);
@@ -52,7 +55,8 @@ export function PicksBoard({
   const [saving, start] = useTransition();
   const byId = useMemo(() => new Map(designs.map((d) => [d.id, d])), [designs]);
   const shown = line ? designs.filter((d) => inLine(d, line)) : designs;
-  const full = ids.length >= picksPerMember;
+  const full = !unlimited && ids.length >= picksPerMember;
+  const ready = unlimited ? ids.length > 0 : full;
 
   const commit = (next: string[]) => {
     const previous = ids;
@@ -89,7 +93,10 @@ export function PicksBoard({
   };
 
   const submit = () => {
-    if (!window.confirm(fill(r.submitConfirm, { n: picksPerMember }))) return;
+    const ask = unlimited
+      ? fill(r.curatorConfirm, { count: ids.length })
+      : fill(r.submitConfirm, { n: picksPerMember });
+    if (!window.confirm(ask)) return;
     start(async () => {
       const res = await submitPicksAction(roundId);
       if (!res.ok) return setError(errorText(res));
@@ -137,7 +144,13 @@ export function PicksBoard({
                       rank ? "bg-gold text-onyx" : "border border-[var(--line)]"
                     }`}
                   >
-                    {rank ? fill(r.ranked, { rank }) : full ? r.full : `+ ${r.add}`}
+                    {rank
+                      ? unlimited
+                        ? r.curatorTicked
+                        : fill(r.ranked, { rank })
+                      : full
+                        ? r.full
+                        : `+ ${r.add}`}
                   </button>
                 )
               }
@@ -150,35 +163,43 @@ export function PicksBoard({
       <div className="surface-dark fixed inset-x-0 bottom-0 z-20 border-t border-[var(--line)] px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
         <div className="mx-auto flex max-w-5xl items-center gap-3">
           <ol className="flex flex-1 gap-1.5" aria-label={r.trayLabel}>
-            {Array.from({ length: picksPerMember }, (_, i) => {
-              const d = ids[i] ? byId.get(ids[i]!) : undefined;
-              return (
-                <li
-                  key={i}
-                  className={`relative aspect-square w-full max-w-12 overflow-hidden rounded-lg border ${
-                    d ? "border-gold" : "border-dashed border-[var(--line)]"
-                  } ${pulse === i ? "animate-pulse ring-2 ring-[var(--accent)]" : ""}`}
-                >
-                  {d ? (
-                    <Image
-                      src={d.colourways[0]!.thumbUrl}
-                      alt={`${i + 1}. ${d.title}`}
-                      fill
-                      sizes="48px"
-                      className="object-cover"
-                    />
-                  ) : (
-                    <span className="grid h-full place-items-center font-mono text-xs text-[var(--muted)]">
-                      {i + 1}
-                    </span>
-                  )}
-                </li>
-              );
-            })}
+            {Array.from(
+              { length: unlimited ? Math.min(ids.length, 6) : picksPerMember },
+              (_, k) => {
+                const i = unlimited ? ids.length - 1 - k : k;
+                const d = ids[i] ? byId.get(ids[i]!) : undefined;
+                return (
+                  <li
+                    key={i}
+                    className={`relative aspect-square w-full max-w-12 overflow-hidden rounded-lg border ${
+                      d ? "border-gold" : "border-dashed border-[var(--line)]"
+                    } ${pulse === i ? "animate-pulse ring-2 ring-[var(--accent)]" : ""}`}
+                  >
+                    {d ? (
+                      <Image
+                        src={d.colourways[0]!.thumbUrl}
+                        alt={`${i + 1}. ${d.title}`}
+                        fill
+                        sizes="48px"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <span className="grid h-full place-items-center font-mono text-xs text-[var(--muted)]">
+                        {i + 1}
+                      </span>
+                    )}
+                  </li>
+                );
+              },
+            )}
           </ol>
           <div className="shrink-0 text-right">
             <p className="font-mono text-xs text-[var(--muted)]">
-              {locked ? "✓" : fill(r.trayCount, { count: ids.length, n: picksPerMember })}
+              {locked
+                ? "✓"
+                : unlimited
+                  ? fill(r.curatorCount, { count: ids.length })
+                  : fill(r.trayCount, { count: ids.length, n: picksPerMember })}
             </p>
             {!locked && (
               <button
@@ -186,10 +207,10 @@ export function PicksBoard({
                 onClick={() => setSheet(true)}
                 disabled={ids.length === 0}
                 className={`mt-1 min-h-11 rounded-full px-4 text-sm font-bold disabled:opacity-40 ${
-                  full ? "bg-gold text-onyx" : "border border-[var(--line)]"
+                  ready ? "bg-gold text-onyx" : "border border-[var(--line)]"
                 }`}
               >
-                {full ? r.reviewSubmit : r.review}
+                {ready ? r.reviewSubmit : r.review}
               </button>
             )}
           </div>
@@ -218,13 +239,15 @@ export function PicksBoard({
           >
             <div className="flex items-center justify-between">
               <h2 id="sheet-title" className="font-youth text-2xl">
-                {r.sheetTitle}
+                {unlimited ? r.curatorSheetTitle : r.sheetTitle}
               </h2>
               <button type="button" onClick={() => setSheet(false)} className={buttonGhost}>
                 {r.close}
               </button>
             </div>
-            <p className="mt-1 text-sm text-[var(--muted)]">{r.sheetHint}</p>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              {unlimited ? r.curatorSheetHint : r.sheetHint}
+            </p>
             <ol className="mt-4 space-y-2">
               {ids.map((id, i) => {
                 const d = byId.get(id);
@@ -261,24 +284,28 @@ export function PicksBoard({
                           {r.remove}
                         </button>
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => move(i, -1)}
-                        disabled={i === 0}
-                        aria-label={`${r.up}: ${d.title}`}
-                        className="grid size-11 place-items-center rounded-full border border-[var(--line)] disabled:opacity-30"
-                      >
-                        ↑
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => move(i, 1)}
-                        disabled={i === ids.length - 1}
-                        aria-label={`${r.down}: ${d.title}`}
-                        className="grid size-11 place-items-center rounded-full border border-[var(--line)] disabled:opacity-30"
-                      >
-                        ↓
-                      </button>
+                      {!unlimited && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => move(i, -1)}
+                            disabled={i === 0}
+                            aria-label={`${r.up}: ${d.title}`}
+                            className="grid size-11 place-items-center rounded-full border border-[var(--line)] disabled:opacity-30"
+                          >
+                            ↑
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => move(i, 1)}
+                            disabled={i === ids.length - 1}
+                            aria-label={`${r.down}: ${d.title}`}
+                            className="grid size-11 place-items-center rounded-full border border-[var(--line)] disabled:opacity-30"
+                          >
+                            ↓
+                          </button>
+                        </>
+                      )}
                     </div>
                     <PickNoteEditor
                       roundId={roundId}
@@ -297,14 +324,20 @@ export function PicksBoard({
             <button
               type="button"
               onClick={submit}
-              disabled={!full || saving}
+              disabled={!ready || saving}
               className={`${buttonPrimary} mt-4`}
             >
-              {saving ? r.submitting : fill(r.submit, { n: picksPerMember })}
+              {saving
+                ? r.submitting
+                : unlimited
+                  ? fill(r.curatorSubmit, { count: ids.length })
+                  : fill(r.submit, { n: picksPerMember })}
             </button>
-            {!full && (
+            {!ready && (
               <p className="mt-2 text-center text-sm text-[var(--muted)]">
-                {fill(r.needMore, { left: picksPerMember - ids.length })}
+                {unlimited
+                  ? r.curatorNeedOne
+                  : fill(r.needMore, { left: picksPerMember - ids.length })}
               </p>
             )}
           </div>

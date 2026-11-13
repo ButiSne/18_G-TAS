@@ -41,6 +41,10 @@ export default async function Results() {
       return n ? [{ name: m.name, ...n }] : [];
     });
   const suggestions = results.byMember.filter((m) => m.suggestion);
+  const adminChoice = new Set(results.adminPicks);
+  // Admin picks with no team points: listed on their own, after the ranking.
+  const ranked = new Set(results.standings.map((s) => s.designId));
+  const adminOnly = results.adminPicks.filter((id) => !ranked.has(id));
 
   return (
     <>
@@ -86,17 +90,67 @@ export default async function Results() {
                   {r.consensus}
                 </span>
               )}
+              {adminChoice.has(s.designId) && <AdminBadge />}
             </li>
           );
         })}
       </ol>
 
+      {adminOnly.length > 0 && (
+        <>
+          <h2 className="font-youth mt-10 text-2xl">{r.adminPicksTitle}</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">{r.adminPicksBody}</p>
+          <ul className="mt-4 space-y-2">
+            {adminOnly.map((id) => {
+              const d = designs.get(id);
+              return (
+                <li
+                  key={id}
+                  className="flex items-center gap-3 rounded-2xl border border-[var(--line)] bg-[var(--card)] p-2"
+                >
+                  {d && (
+                    <Link
+                      href={`/designs/${d.slug}`}
+                      className="relative size-14 shrink-0 overflow-hidden rounded-xl"
+                    >
+                      <Image
+                        src={d.colourways[0]!.thumbUrl}
+                        alt={d.title}
+                        fill
+                        sizes="56px"
+                        className="object-cover"
+                      />
+                    </Link>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold">{title(id)}</p>
+                    <Notes notes={notesFor(id)} />
+                  </div>
+                  <AdminBadge />
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
+
       <h2 className="font-youth mt-10 text-2xl">{r.whoPicked}</h2>
       <div className="mt-4 space-y-3">
         {results.byMember.map((m) => (
           <section key={m.memberId} className="rounded-2xl border border-[var(--line)] p-4">
-            <h3 className="font-bold">{m.name}</h3>
-            <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-[var(--muted)]">
+            <h3 className="font-bold">
+              {m.name}
+              {m.role === "curator" && (
+                <span className="ml-2 align-middle">
+                  <AdminBadge />
+                </span>
+              )}
+            </h3>
+            <ol
+              className={`mt-2 space-y-1 pl-5 text-sm text-[var(--muted)] ${
+                m.role === "curator" ? "list-disc" : "list-decimal"
+              }`}
+            >
               {m.designIds.map((id) => (
                 <li key={id}>
                   {title(id)}
@@ -161,5 +215,13 @@ function Notes({ notes }: { notes: { name: string; note: string; kind: NoteKind 
         ))}
       </ul>
     </details>
+  );
+}
+
+function AdminBadge() {
+  return (
+    <span className="bg-gold text-onyx shrink-0 rounded-full px-2 py-0.5 font-mono text-[10px] font-bold uppercase">
+      {r.adminChoice}
+    </span>
   );
 }

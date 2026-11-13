@@ -21,6 +21,9 @@ export const roundStatus = pgEnum("round_status", ["draft", "open", "closed", "p
 export const publicMode = pgEnum("public_mode", ["favourite", "head_to_head", "swipe"]);
 export const finalSlot = pgEnum("final_slot", ["sublimation", "other"]);
 // A team member's note on a design they ticked: a comment, or a suggested change.
+// "picker": ranks N designs for Borda points. "curator": the admin, who ticks any number of
+// designs; they earn no points but go straight into the public vote (owner's decision).
+export const roundRole = pgEnum("round_role", ["picker", "curator"]);
 export const pickNoteKind = pgEnum("pick_note_kind", ["comment", "suggestion"]);
 
 /** One extra image of a colourway: the back of the tee, or a close-up. */
@@ -133,6 +136,7 @@ export const roundMember = pgTable(
       .notNull()
       .references(() => member.id),
     submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    role: roundRole("role").notNull().default("picker"),
     // A free suggestion for the round as a whole ("we need more navy"). Private until the
     // round closes, like the picks.
     suggestion: text("suggestion"),
@@ -188,6 +192,8 @@ export const shortlist = pgTable(
     firstPlaces: integer("first_places").notNull(),
     position: integer("position").notNull(),
     tieBreakNote: text("tie_break_note"),
+    // Picked by the admin: in the public vote whatever its team points.
+    adminChoice: boolean("admin_choice").notNull().default(false),
   },
   (t) => [unique("shortlist_once").on(t.roundId, t.designId)],
 );

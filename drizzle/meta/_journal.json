@@ -50,6 +50,13 @@
       "when": 1793829905074,
       "tag": "0006_image_unique_per_design",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794560403639,
+      "tag": "0007_admin_curator_picks",
+      "breakpoints": true
     }
   ]
 }

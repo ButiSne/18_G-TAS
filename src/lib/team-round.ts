@@ -6,7 +6,7 @@ import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm
 import type { createDb } from "../db/client.ts";
 import { design, member, memberPick, roundMember, selectionRound } from "../db/schema.ts";
 import { audit } from "./audit.ts";
-import { picksPerMemberSchema, validatePicks, type PicksProblem } from "./picks.ts";
+import { picksPerMemberSchema, UNLIMITED, validatePicks, type PicksProblem } from "./picks.ts";
 import { computeStandings, type MemberPicks, type Standing } from "./scoring.ts";
 
 type Db = ReturnType<typeof createDb>;
@@ -21,6 +21,8 @@ export type RoundErrorCode =
   | "invalid_picks"
   | "unknown_design"
   | "not_picked"
+  | "not_admin"
+  | "not_closed"
   | "too_long"
   | "bad_settings";
 
@@ -72,7 +74,11 @@ export async function roundProgress(db: Db, roundId: string) {
 
 export async function myRoundState(db: Db, roundId: string, memberId: string) {
   const [membership] = await db
-    .select({ submittedAt: roundMember.submittedAt, suggestion: roundMember.suggestion })
+    .select({
+      submittedAt: roundMember.submittedAt,
+      suggestion: roundMember.suggestion,
+      role: roundMember.role,
+    })
     .from(roundMember)
     .where(and(eq(roundMember.roundId, roundId), eq(roundMember.memberId, memberId)));
   const picks = await db
@@ -90,6 +96,8 @@ export async function myRoundState(db: Db, roundId: string, memberId: string) {
     if (p.note && p.noteKind) notes[p.designId] = { note: p.note, kind: p.noteKind };
   return {
     inRound: Boolean(membership),
+    /** "curator": the admin, ticking any number of designs for the public vote. */
+    role: membership?.role ?? null,
     submittedAt: membership?.submittedAt ?? null,
     designIds: picks.map((p) => p.designId),
     notes,
@@ -133,9 +141,21 @@ export async function openRound(
       })
       .where(eq(selectionRound.id, round.id));
     await tx.delete(roundMember).where(eq(roundMember.roundId, round.id));
-    await tx
-      .insert(roundMember)
-      .values(opts.memberIds.map((memberId) => ({ roundId: round.id, memberId })));
+    // An admin chosen to pick does so as curator (any number, no points, straight into the
+    // public vote), and the round waits for them too. Everyone else ranks for points.
+    const admins = new Set(
+      (await tx.select({ id: member.id }).from(member).where(eq(member.role, "admin"))).map(
+        (a) => a.id,
+      ),
+    );
+    if (opts.memberIds.every((id) => admins.has(id))) throw new RoundError("bad_settings");
+    await tx.insert(roundMember).values(
+      opts.memberIds.map((memberId) => ({
+        roundId: round.id,
+        memberId,
+        role: admins.has(memberId) ? ("curator" as const) : ("picker" as const),
+      })),
+    );
     await audit(tx, opts.actorId, "round.opened", {
       roundId: round.id,
       memberIds: opts.memberIds,
@@ -186,12 +206,67 @@ export async function unlockMember(
   });
 }
 
+/**
+ * Lets an admin add their picks to a round the team has already finished: the admin joins
+ * as curator and the round opens again for them alone. Every member's submitted picks stay
+ * exactly as they are, locked. When the admin submits, the round closes again by itself.
+ * Not possible once the shortlist is confirmed (the public vote is built from it).
+ */
+export async function reopenForAdmin(
+  db: Db,
+  opts: { roundId: string; adminId: string; now: Date },
+) {
+  await db.transaction(async (tx) => {
+    const [round] = await tx
+      .select()
+      .from(selectionRound)
+      .where(eq(selectionRound.id, opts.roundId))
+      .for("update");
+    if (!round) throw new RoundError("no_round");
+    const [admin] = await tx.select().from(member).where(eq(member.id, opts.adminId));
+    if (admin?.role !== "admin") throw new RoundError("not_admin");
+    const [membership] = await tx
+      .select()
+      .from(roundMember)
+      .where(and(eq(roundMember.roundId, round.id), eq(roundMember.memberId, opts.adminId)))
+      .for("update");
+    if (round.status === "open") {
+      if (!membership)
+        await tx
+          .insert(roundMember)
+          .values({ roundId: round.id, memberId: opts.adminId, role: "curator" });
+      return;
+    }
+    if (round.status !== "closed") throw new RoundError("not_closed");
+    if (membership) {
+      await tx
+        .update(roundMember)
+        .set({ role: "curator", submittedAt: null })
+        .where(eq(roundMember.id, membership.id));
+    } else {
+      await tx
+        .insert(roundMember)
+        .values({ roundId: round.id, memberId: opts.adminId, role: "curator" });
+    }
+    await tx
+      .update(selectionRound)
+      .set({ status: "open", closesAt: null })
+      .where(eq(selectionRound.id, round.id));
+    await audit(tx, opts.adminId, "round.reopened_for_admin", {
+      roundId: round.id,
+      at: opts.now.toISOString(),
+      note: "Members' submitted picks unchanged; closes again when the admin submits.",
+    });
+  });
+}
+
 export async function adminRoundOverview(db: Db, roundId: string) {
   return db
     .select({
       memberId: member.id,
       name: member.name,
       submittedAt: roundMember.submittedAt,
+      role: roundMember.role,
       picks: sql<number>`(select count(*)::int from "member_pick" p
         where p.round_id = ${roundId} and p.member_id = "member"."id")`,
     })
@@ -240,9 +315,10 @@ export async function savePicks(
 ) {
   await db.transaction(async (tx) => {
     const round = await lockOpenRound(tx, opts.roundId);
-    await lockMembership(tx, round.id, opts.memberId);
+    const membership = await lockMembership(tx, round.id, opts.memberId);
     const picks = opts.designIds.map((designId, i) => ({ designId, rank: i + 1 }));
-    const problems = validatePicks(picks, round.picksPerMember, false);
+    const limit = membership.role === "curator" ? UNLIMITED : round.picksPerMember;
+    const problems = validatePicks(picks, limit, false);
     if (problems.length) throw new RoundError("invalid_picks", problems);
     if (picks.length) {
       const found = await tx
@@ -341,12 +417,13 @@ export async function submitPicks(
 ): Promise<{ roundClosed: boolean }> {
   return db.transaction(async (tx) => {
     const round = await lockOpenRound(tx, opts.roundId);
-    await lockMembership(tx, round.id, opts.memberId);
+    const membership = await lockMembership(tx, round.id, opts.memberId);
     const picks = await tx
       .select({ designId: memberPick.designId, rank: memberPick.rank })
       .from(memberPick)
       .where(and(eq(memberPick.roundId, round.id), eq(memberPick.memberId, opts.memberId)));
-    const problems = validatePicks(picks, round.picksPerMember, true);
+    const limit = membership.role === "curator" ? UNLIMITED : round.picksPerMember;
+    const problems = validatePicks(picks, limit, true);
     if (problems.length) throw new RoundError("invalid_picks", problems);
 
     await tx
@@ -373,7 +450,10 @@ export async function submitPicks(
 // --- Results: only once the round is closed ----------------------------------------
 
 export type RoundResults = {
+  /** Borda points from the team's pickers only. */
   standings: Standing[];
+  /** The admin's picks: no points, but every one goes into the public vote. */
+  adminPicks: string[];
   /** Who picked what, in rank order, with their notes. Present only after the round closes. */
   byMember: {
     memberId: string;
@@ -381,6 +461,7 @@ export type RoundResults = {
     designIds: string[];
     notes: Record<string, PickNote>;
     suggestion: string | null;
+    role: "picker" | "curator";
   }[];
 };
 
@@ -401,6 +482,7 @@ export async function roundResults(db: Db, roundId: string): Promise<RoundResult
       note: memberPick.note,
       noteKind: memberPick.noteKind,
       suggestion: roundMember.suggestion,
+      role: roundMember.role,
     })
     .from(memberPick)
     .innerJoin(member, eq(member.id, memberPick.memberId))
@@ -416,6 +498,7 @@ export async function roundResults(db: Db, roundId: string): Promise<RoundResult
 
   type Group = {
     name: string;
+    role: "picker" | "curator";
     suggestion: string | null;
     picks: { designId: string; rank: number }[];
     notes: Record<string, PickNote>;
@@ -424,6 +507,7 @@ export async function roundResults(db: Db, roundId: string): Promise<RoundResult
   for (const r of rows) {
     const g = grouped.get(r.memberId) ?? {
       name: r.name,
+      role: r.role,
       suggestion: r.suggestion,
       picks: [],
       notes: {},
@@ -432,15 +516,26 @@ export async function roundResults(db: Db, roundId: string): Promise<RoundResult
     if (r.note && r.noteKind) g.notes[r.designId] = { note: r.note, kind: r.noteKind };
     grouped.set(r.memberId, g);
   }
-  const all: MemberPicks[] = [...grouped].map(([memberId, g]) => ({ memberId, picks: g.picks }));
+  const all: MemberPicks[] = [...grouped]
+    .filter(([, g]) => g.role === "picker")
+    .map(([memberId, g]) => ({ memberId, picks: g.picks }));
+  const adminPicks = [
+    ...new Set(
+      [...grouped.values()]
+        .filter((g) => g.role === "curator")
+        .flatMap((g) => g.picks.map((p) => p.designId)),
+    ),
+  ];
   return {
     standings: computeStandings(all, round.picksPerMember),
+    adminPicks,
     byMember: [...grouped].map(([memberId, g]) => ({
       memberId,
       name: g.name,
       designIds: g.picks.map((p) => p.designId),
       notes: g.notes,
       suggestion: g.suggestion,
+      role: g.role,
     })),
   };
 }
