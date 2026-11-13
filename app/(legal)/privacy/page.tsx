@@ -47,13 +47,15 @@ export default function Privacy() {
         limit how fast votes can arrive. It is never stored with your vote.
       </p>
       <p>
-        <strong>From anyone under 18, we never collect</strong> names, email addresses or phone
-        numbers. An email sign-in option, if we ever switch it on, is only offered after you confirm
-        you are 18 or older.
+        <strong>We never collect names, email addresses or phone numbers from voters</strong>,
+        whatever their age.
       </p>
       <p>
-        <strong>Team members and admins.</strong> We store your name and email address so we can
-        send you sign-in links, and the designs you pick and rank.
+        <strong>The 18 G-TAS team (members and admin).</strong> We store your name and an email
+        address that identifies your account; no email is ever sent. Your sign-in link is made by
+        the admin and sent to you on WhatsApp, and we keep only a scrambled copy of it and of your
+        sign-in cookie. We also store the designs you pick (and rank, for members), and any comments
+        or suggestions you add.
       </p>
 
       <h2 id="why">Why we use it</h2>

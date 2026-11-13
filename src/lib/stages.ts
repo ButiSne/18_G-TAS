@@ -407,6 +407,8 @@ export async function publicResults(db: Db, publicRoundId: string): Promise<Publ
 export type FinalCandidateRow = PublicEntryCard & {
   teamPoints: number;
   teamPosition: number;
+  /** Picked by the admin: in the vote with or without team points, and can go to print. */
+  adminChoice: boolean;
   publicPosition: number | null;
   likeRate: number;
   swipes: number;
@@ -428,6 +430,7 @@ export async function finalCandidates(db: Db, publicRoundId: string): Promise<Fi
       ...r.card,
       teamPoints: s?.points ?? 0,
       teamPosition: s?.position ?? 0,
+      adminChoice: s?.adminChoice ?? false,
       publicPosition: r.swipes ? r.position : null,
       likeRate: r.likeRate,
       swipes: r.swipes,
