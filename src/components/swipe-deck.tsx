@@ -53,6 +53,14 @@ declare global {
  */
 const noSubscribe = () => () => {};
 
+/**
+ * With a long deck (90 designs once the admin's choices joined), a voter may submit after
+ * this many swipes: what they swiped counts and the rest is skipped (owner, 15 Nov 2026).
+ */
+const SUBMIT_AFTER = 10;
+/** About two seconds a card, for the honest time on the start screen. */
+const minutesFor = (cards: number) => Math.max(1, Math.round((cards * 2) / 60));
+
 export function SwipeDeck({
   cards,
   siteKey,
@@ -184,7 +192,15 @@ export function SwipeDeck({
           <h1 className="font-youth mt-3 text-5xl leading-[0.95]">
             {fill(v.introTitle, { count: cards.length })}
           </h1>
-          <p className="mt-4 text-lg text-ivory/85">{v.introBody}</p>
+          <p className="mt-4 text-lg text-ivory/85">
+            {cards.length > SUBMIT_AFTER
+              ? fill(v.introBodyLong, {
+                  count: cards.length,
+                  minutes: minutesFor(cards.length),
+                  after: SUBMIT_AFTER,
+                })
+              : v.introBody}
+          </p>
           <div className="mt-6 flex gap-3 font-mono text-sm" aria-hidden>
             <span className="border-coral text-coral rounded-full border-2 px-3 py-1 font-bold">
               ← {v.cha}
@@ -302,7 +318,17 @@ export function SwipeDeck({
             </a>
           )}
         </div>
-        <p className="mt-2 text-center text-[11px] text-[var(--muted)]">{v.hint}</p>
+        {swipes.length >= Math.min(SUBMIT_AFTER, order.length) && remaining.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => setPhase("pick")}
+            className="mx-auto mt-2 min-h-11 rounded-full border border-white/25 px-5 text-sm font-semibold"
+          >
+            {fill(v.submitNow, { done: swipes.length, total: order.length })}
+          </button>
+        ) : (
+          <p className="mt-2 text-center text-[11px] text-[var(--muted)]">{v.hint}</p>
+        )}
       </section>
     );
   }
@@ -336,6 +362,11 @@ export function SwipeDeck({
           <p className="mt-2 text-[var(--muted)]">
             {liked.length ? v.pickBodySubmit : v.submitBodyNoLikes}
           </p>
+          {remaining.length > 0 && (
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              {fill(v.skippedNote, { done: swipes.length, total: order.length })}
+            </p>
+          )}
           {liked.length > 0 && (
             <div className="mt-6 grid grid-cols-2 gap-3" role="radiogroup" aria-label={v.pickTitle}>
               {liked.map((c) => {
@@ -358,6 +389,8 @@ export function SwipeDeck({
                         alt={`${c.title}, ${c.colourwayName}`}
                         fill
                         sizes="50vw"
+                        placeholder={c.blurDataUrl ? "blur" : "empty"}
+                        blurDataURL={c.blurDataUrl ?? undefined}
                         className="object-cover"
                       />
                       {on && (
@@ -394,6 +427,16 @@ export function SwipeDeck({
           >
             ↶ {v.undoLast}
           </button>
+          {remaining.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setPhase("deck")}
+              disabled={pending}
+              className="mt-3 min-h-12 w-full rounded-full border border-white/20 text-sm"
+            >
+              {fill(v.keepSwiping, { left: remaining.length })}
+            </button>
+          )}
         </div>
       </section>
     );

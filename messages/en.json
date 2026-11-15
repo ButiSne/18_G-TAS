@@ -417,7 +417,11 @@
     "submitting": "Submitting…",
     "submitNote": "One vote per phone. Once you submit, your vote is final.",
     "undoLast": "Undo my last swipe",
-    "voteIn": "Your vote is in. One vote per phone, and this one is yours."
+    "voteIn": "Your vote is in. One vote per phone, and this one is yours.",
+    "introBodyLong": "Swipe right for YEBO, left for CHA. All {count} take about {minutes} min, or submit any time after {after} swipes. One vote per phone, no account needed.",
+    "submitNow": "Submit my vote now ({done} of {total})",
+    "skippedNote": "You swiped {done} of {total}. Those count; the rest are skipped when you submit.",
+    "keepSwiping": "Keep swiping ({left} left)"
   },
   "collection": {
     "eiteen": {
