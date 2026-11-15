@@ -8,6 +8,7 @@
 import { and, asc, eq } from "drizzle-orm";
 import { colourway, design } from "@/src/db/schema";
 import { getDb } from "@/src/db/server";
+import { seededShuffle } from "./catalogue";
 import { inLine, type Line } from "./design-line";
 import { currentPublicRound, publicEntries } from "./stages";
 
@@ -34,6 +35,8 @@ export type Showcase = {
   voting: VotingState;
   /** Empty until the team's shortlist is confirmed. */
   shortlist: ShortlistCard[];
+  /** The landing strip: a fresh, balanced sample of the shortlist (stripSample). */
+  strip: ShortlistCard[];
 };
 
 export const EMPTY_SHOWCASE: Showcase = {
@@ -42,6 +45,7 @@ export const EMPTY_SHOWCASE: Showcase = {
   teasers: [],
   voting: "none",
   shortlist: [],
+  strip: [],
 };
 
 type Row = { id: string; line: Line; blur: string | null };
@@ -64,6 +68,32 @@ export function summarise(
     }
   }
   return { total: rows.length, byLine, teasers };
+}
+
+/**
+ * The landing strip's share of a long shortlist (owner, 15 Nov 2026): at most `size`
+ * designs, shuffled with `seed` and alternating EITEEN and G-TAS, so a phone doesn't
+ * download all 90 thumbnails as the strip drifts. A shorter shortlist is shown whole.
+ */
+/** How many shortlisted designs the landing strip carries. */
+export const STRIP_SIZE = 30;
+
+export function stripSample<T extends { line: Line }>(cards: T[], size: number, seed: string): T[] {
+  if (cards.length <= size) return cards;
+  const queues = (["EITEEN", "G-TAS"] as const).map((line) =>
+    seededShuffle(
+      cards.filter((c) => c.line === line),
+      `${seed}:${line}`,
+    ),
+  );
+  const out: T[] = [];
+  while (out.length < size && queues.some((q) => q.length)) {
+    for (const q of queues) {
+      const next = q.shift();
+      if (next && out.length < size) out.push(next);
+    }
+  }
+  return out;
 }
 
 /** A public round's status, as the landing page and collection pages present it. */
@@ -102,7 +132,10 @@ export async function getShowcase(limit = 16): Promise<Showcase> {
             blurDataUrl: e.blurDataUrl,
           }))
       : [];
-    return { ...summarise(rows, limit), voting: votingState(pr?.status), shortlist };
+    // A new mix each time the page is regenerated (every few minutes at most); the line
+    // pages still show every shortlisted design.
+    const strip = stripSample(shortlist, STRIP_SIZE, Math.random().toString(36).slice(2, 8));
+    return { ...summarise(rows, limit), voting: votingState(pr?.status), shortlist, strip };
   } catch (error) {
     // The landing page must never fail because the database is unreachable.
     console.error("[showcase] falling back to no live data:", (error as Error).message);

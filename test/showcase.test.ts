@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { shortlistFor, summarise, votingState } from "@/src/lib/showcase";
+import { shortlistFor, stripSample, summarise, votingState } from "@/src/lib/showcase";
 
 const row = (id: string, line: "EITEEN" | "G-TAS", blur: string | null = `data:${id}`) => ({
   id,
@@ -64,10 +64,39 @@ describe("shortlistFor", () => {
     teasers: [],
     voting: "open" as const,
     shortlist: [card("a", "EITEEN"), card("b", "G-TAS"), card("c", "G-TAS", ["crossover"])],
+    strip: [],
   };
 
   it("shows only the shortlisted designs of a line, crossovers in both", () => {
     expect(shortlistFor(show, "EITEEN").map((c) => c.slug)).toEqual(["a", "c"]);
     expect(shortlistFor(show, "G-TAS").map((c) => c.slug)).toEqual(["b", "c"]);
+  });
+});
+
+describe("stripSample (the landing strip from a long shortlist)", () => {
+  const cards = [
+    ...Array.from({ length: 43 }, (_, i) => ({ id: `e${i}`, line: "EITEEN" as const })),
+    ...Array.from({ length: 47 }, (_, i) => ({ id: `g${i}`, line: "G-TAS" as const })),
+  ];
+
+  it("carries at most 30, half from each line, with no repeats", () => {
+    const s = stripSample(cards, 30, "abc");
+    expect(s).toHaveLength(30);
+    expect(new Set(s.map((c) => c.id)).size).toBe(30);
+    expect(s.filter((c) => c.line === "EITEEN")).toHaveLength(15);
+  });
+
+  it("is the same for the same seed and different for another", () => {
+    const ids = (seed: string) => stripSample(cards, 30, seed).map((c) => c.id);
+    expect(ids("abc")).toEqual(ids("abc"));
+    expect(ids("abc")).not.toEqual(ids("xyz"));
+  });
+
+  it("shows a short shortlist whole, and fills up from the bigger line when one runs out", () => {
+    expect(stripSample(cards.slice(0, 20), 30, "abc")).toHaveLength(20);
+    const lopsided = [...cards.slice(0, 5), ...cards.slice(43)];
+    const s = stripSample(lopsided, 30, "abc");
+    expect(s).toHaveLength(30);
+    expect(s.filter((c) => c.line === "EITEEN")).toHaveLength(5);
   });
 });

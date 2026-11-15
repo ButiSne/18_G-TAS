@@ -148,7 +148,7 @@ function Peek({ show, share }: { show: Showcase; share: string }) {
         </h2>
       </div>
       {revealed ? (
-        <ShortlistStrip cards={show.shortlist} voting={show.voting} />
+        <ShortlistStrip cards={show.strip} voting={show.voting} />
       ) : (
         show.teasers.length > 0 && <TeaserStrip teasers={show.teasers} />
       )}
