@@ -69,19 +69,34 @@ test("link previews use the share card at a plain address, on every page", async
   page,
   request,
 }) => {
-  for (const path of ["/", "/vote?ref=wa-test", "/collection/eiteen", "/privacy"]) {
+  // Every link anyone shares carries the one card (owner, 15 Nov 2026): the same image,
+  // title and description, and no og:url, so each preview opens the link that was shared.
+  const shareable = [
+    "/",
+    "/?ref=wa-share&s=4",
+    "/vote?ref=wa-umlazi&s=4",
+    "/collection/eiteen",
+    "/collection/g-tas",
+    "/results",
+    "/privacy",
+    "/members/signin",
+    `/members/join/${"x".repeat(43)}`, // a team invite link
+  ];
+  for (const path of shareable) {
     await page.goto(path);
-    const og = await page.locator('meta[property="og:image"]').first().getAttribute("content");
+    const meta = (key: string) =>
+      page.locator(`meta[property="${key}"], meta[name="${key}"]`).first();
+    const og = await meta("og:image").getAttribute("content");
     // A plain, versioned path with no query string: some WhatsApp versions are fussy.
     expect(og, path).toMatch(/^https?:\/\/[^?]+\/og\/18gtas-share-v\d+\.jpg$/);
-    await expect(page.locator('meta[property="og:title"]').first()).toHaveAttribute(
+    await expect(meta("og:title"), path).toHaveAttribute("content", "18 G-TAS is back");
+    await expect(meta("og:description"), path).toHaveAttribute(
       "content",
-      /18 G-TAS/,
+      "Est. 2008. Eighteen years later, 18 G-TAS is back. Help choose the first drop.",
     );
-    await expect(page.locator('meta[name="twitter:card"]').first()).toHaveAttribute(
-      "content",
-      "summary_large_image",
-    );
+    await expect(meta("og:site_name"), path).toHaveAttribute("content", "18 G-TAS");
+    await expect(meta("twitter:card"), path).toHaveAttribute("content", "summary_large_image");
+    await expect(page.locator('meta[property="og:url"]'), path).toHaveCount(0);
   }
   await expect(page.locator('link[rel="icon"][href*="icon.png"]').first()).toBeAttached();
 
