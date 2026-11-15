@@ -3,7 +3,8 @@ import { Archivo_Black, Cinzel, Montserrat, Playfair_Display, Space_Mono } from 
 import { RefKeeper } from "@/src/components/ref-keeper";
 import { SiteFooter } from "@/src/components/site-footer";
 import { getMessages } from "@/src/lib/messages";
-import { SHARE_IMAGE, SITE_URL } from "@/src/lib/site";
+import { SHARE_OPEN_GRAPH, SHARE_TWITTER } from "@/src/lib/share-meta";
+import { SITE_URL } from "@/src/lib/site";
 import "./globals.css";
 
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair" });
@@ -26,31 +27,10 @@ export const metadata: Metadata = {
   title: { default: t.site.title, template: `%s · ${t.site.name}` },
   description: t.site.tagline,
   metadataBase: new URL(SITE_URL),
-  // Link previews (WhatsApp, Facebook, X): every page shares the brand card unless it sets
-  // its own. Absolute URLs come from metadataBase.
-  openGraph: {
-    title: t.site.title,
-    description: t.site.tagline,
-    siteName: t.site.name,
-    url: "/",
-    locale: "en_ZA",
-    type: "website",
-    images: [
-      {
-        url: SHARE_IMAGE.path,
-        width: SHARE_IMAGE.width,
-        height: SHARE_IMAGE.height,
-        type: "image/jpeg",
-        alt: SHARE_IMAGE.alt,
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: t.site.title,
-    description: t.site.tagline,
-    images: [{ url: SHARE_IMAGE.path, alt: SHARE_IMAGE.alt }],
-  },
+  // Link previews (WhatsApp, Facebook, X): every page shares the same brand card
+  // (src/lib/share-meta.ts). Absolute URLs come from metadataBase.
+  openGraph: SHARE_OPEN_GRAPH,
+  twitter: SHARE_TWITTER,
 };
 
 // Onyx in both themes: the phone's browser bar blends into the dark hero and footer.

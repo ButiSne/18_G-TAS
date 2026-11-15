@@ -8,32 +8,19 @@ import { normaliseRef } from "@/src/lib/tally";
 import { readVoterCookie, voteSecrets } from "@/src/lib/vote-session";
 import { isVerified, saltedHash } from "@/src/lib/voter";
 import { voterState } from "@/src/lib/voting";
-import { SHARE_IMAGE, whatsappShareUrl } from "@/src/lib/site";
+import { SHARE_OPEN_GRAPH, SHARE_TWITTER } from "@/src/lib/share-meta";
+import { whatsappShareUrl } from "@/src/lib/site";
 
 const t = getMessages();
 const v = t.vote;
 
-// A page's openGraph replaces the layout's whole object, so the share card is repeated
-// here: /vote?ref=… is the link shared most on WhatsApp.
+// /vote?ref=… is the link shared most. It carries the same preview as every other link
+// (owner, 15 Nov 2026), set again here because a page's openGraph replaces the layout's.
 export const metadata = {
   title: "Vote",
   description: t.site.tagline,
-  openGraph: {
-    title: `${t.site.title}: vote YEBO or CHA`,
-    description: v.introBody,
-    siteName: t.site.name,
-    locale: "en_ZA",
-    type: "website",
-    images: [
-      {
-        url: SHARE_IMAGE.path,
-        width: SHARE_IMAGE.width,
-        height: SHARE_IMAGE.height,
-        type: "image/jpeg",
-        alt: SHARE_IMAGE.alt,
-      },
-    ],
-  },
+  openGraph: SHARE_OPEN_GRAPH,
+  twitter: SHARE_TWITTER,
 };
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
