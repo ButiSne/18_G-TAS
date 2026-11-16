@@ -20,7 +20,8 @@ export function ChannelLinks() {
       .replace(/^-+|-+$/g, ""),
   );
   // &s= is the share-card version, so WhatsApp shows the current card (see SHARE_VERSION).
-  const link = slug ? `${window.location.origin}/vote?ref=${slug}&s=${SHARE_VERSION}` : "";
+  // Through the short share page (/s): the preview card shows at once, people land on /vote.
+  const link = slug ? `${window.location.origin}/s?to=vote&ref=${slug}&s=${SHARE_VERSION}` : "";
 
   return (
     <div className="mt-3">

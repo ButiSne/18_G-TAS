@@ -18,7 +18,7 @@ describe("whatsappShareUrl", () => {
     const url = new URL(whatsappShareUrl("18 G-TAS is back!"));
     expect(url.origin).toBe("https://wa.me");
     const text = url.searchParams.get("text")!;
-    expect(text).toBe(`18 G-TAS is back! ${SITE_URL}/?ref=wa-share&s=${SHARE_VERSION}`);
+    expect(text).toBe(`18 G-TAS is back! ${SITE_URL}/s?ref=wa-share&s=${SHARE_VERSION}`);
     const link = new URL(text.split(" ").at(-1)!);
     expect(normaliseRef(link.searchParams.get("ref"))).toBe("wa-share");
   });
@@ -27,7 +27,7 @@ describe("whatsappShareUrl", () => {
     expect(SHARE_IMAGE.path).toBe(`/og/18gtas-share-v${SHARE_VERSION}.jpg`);
     expect(existsSync(`public${SHARE_IMAGE.path}`)).toBe(true);
     const text = new URL(whatsappShareUrl("Vote", "wa-umlazi", "/vote")).searchParams.get("text")!;
-    expect(text).toBe(`Vote ${SITE_URL}/vote?ref=wa-umlazi&s=${SHARE_VERSION}`);
+    expect(text).toBe(`Vote ${SITE_URL}/s?to=vote&ref=wa-umlazi&s=${SHARE_VERSION}`);
   });
 });
 

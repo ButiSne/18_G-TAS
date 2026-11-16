@@ -235,11 +235,12 @@ function ShortlistStrip({ cards, voting }: { cards: ShortlistCard[]; voting: Sho
             >
               <Image
                 src={card.thumbUrl}
+                // The thumbnails are already small WebP files: no resizing or placeholder, so
+                // the page stays light for link previews and for phones on data.
+                unoptimized
                 alt={`${card.title}, ${card.colourwayName}`}
                 fill
                 sizes="144px"
-                placeholder={card.blurDataUrl ? "blur" : "empty"}
-                blurDataURL={card.blurDataUrl ?? undefined}
                 className="object-cover"
               />
               <span
@@ -384,7 +385,7 @@ function LinePreview({ show, line }: { show: Showcase; line: Line }) {
           key={c.designId}
           className="relative aspect-[1200/1380] overflow-hidden rounded-xl bg-[#ececec]"
         >
-          <Image src={c.thumbUrl} alt="" fill sizes="80px" className="object-cover" />
+          <Image src={c.thumbUrl} alt="" fill unoptimized className="object-cover" />
         </span>
       ))}
       {teasers.map((x) => (
