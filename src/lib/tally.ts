@@ -30,7 +30,7 @@ export function tallyByRef(votes: FavouriteVote[]): Record<string, EntryResult[]
   return Object.fromEntries([...byRef.entries()].map(([ref, vs]) => [ref, tallyFavourites(vs)]));
 }
 
-const REF_PATTERN = /^[a-z0-9][a-z0-9-]{0,39}$/;
+export const REF_PATTERN = /^[a-z0-9][a-z0-9-]{0,39}$/;
 
 /** Refs come from a URL anyone can edit; keep only short slugs, never free text. */
 export function normaliseRef(raw: string | null | undefined): string | null {
