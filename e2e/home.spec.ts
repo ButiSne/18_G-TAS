@@ -140,9 +140,10 @@ test("each line tile shows the same count as the page it opens", async ({ page }
 });
 
 test("the short share page gives link previewers the card and sends people on", async ({
+  page,
   request,
 }) => {
-  const bot = await request.get("/s?ref=wa-test&s=5", {
+  const bot = await request.get("/s?ref=wa-test&s=6", {
     headers: { "user-agent": "WhatsApp/2.24.20.80 A" },
     maxRedirects: 0,
   });
@@ -150,13 +151,23 @@ test("the short share page gives link previewers the card and sends people on", 
   const html = await bot.text();
   expect(html.length).toBeLessThan(3000); // the whole page, so the preview is instant
   expect(html).toContain('<meta property="og:title" content="18 G-TAS is back">');
+  expect(html).not.toMatch(/http-equiv/i); // nothing for WhatsApp to follow off the card
   const image = html.match(/property="og:image" content="([^"]+)"/)?.[1];
   expect(image).toMatch(/^https?:\/\/[^?]+\/og\/18gtas-share-v\d+\.jpg$/);
   const card = await request.get(new URL(image!).pathname);
   expect(card.status()).toBe(200);
   expect(card.headers()["content-type"]).toContain("image/jpeg");
 
-  const person = await request.get("/s?to=vote&ref=wa-test&s=5", { maxRedirects: 0 });
-  expect(person.status()).toBe(307);
-  expect(person.headers()["location"]).toMatch(/\/vote\?ref=wa-test$/);
+  // One static page for everyone: no user-agent sniffing to get wrong.
+  const other = await request.get("/s?to=vote&ref=x&s=6", {
+    headers: { "user-agent": "SomeNewPreviewer/1.0" },
+    maxRedirects: 0,
+  });
+  expect(await other.text()).toBe(html);
+
+  // A person's browser runs the forwarding script and lands on the vote, channel kept.
+  await page.goto("/s?to=vote&ref=WA-Test&s=6");
+  await expect(page).toHaveURL(/\/vote\?ref=wa-test$/);
+  await page.goto("/s?ref=wa-share&s=6");
+  await expect(page).toHaveURL(/\/\?ref=wa-share$/);
 });

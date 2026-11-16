@@ -12,7 +12,7 @@ export const LEGAL_NAME_FULL = `${LEGAL_NAME}, trading as ${TRADING_NAME}`;
  * bump SHARE_VERSION and run `pnpm brand-assets` again: the image and every shared link
  * get a new address, so WhatsApp fetches a fresh preview instead of showing the old card.
  */
-export const SHARE_VERSION = 5;
+export const SHARE_VERSION = 6;
 
 export const SHARE_IMAGE = {
   path: `/og/18gtas-share-v${SHARE_VERSION}.jpg`,
@@ -56,8 +56,8 @@ export function whatsappShareUrl(text: string, ref = "wa-share", path = "/"): st
 }
 
 /**
- * The address people pass on. It goes through the short share page /s, which hands link
- * previewers a tiny page with the card and sends people on to `path` (src/lib/share-link.ts).
+ * The address people pass on. It goes through the short share page /s: a tiny static page
+ * with the card for link previewers, which sends people on to `path` (src/lib/share-link.ts).
  * ?ref= carries the channel; ?s= the share-card version, so a new card means a new address
  * and WhatsApp drops its cached preview.
  */
